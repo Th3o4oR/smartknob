@@ -38,6 +38,7 @@ void setup() {
   motor_task.setLogger(&interface_task);
   motor_task.begin();
 
+  connectivity_task.setLogger(&interface_task);
   connectivity_task.begin();
 
   // Free up the Arduino loop task
