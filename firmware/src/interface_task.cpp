@@ -10,6 +10,10 @@
 #include <Adafruit_VEML7700.h>
 #endif
 
+// MOVE THESE TO HEADER WHEN COMPLETED
+#include <vector>
+#include <map>
+
 #include "interface_task.h"
 #include "semaphore_guard.h"
 #include "util.h"
@@ -163,43 +167,49 @@ void InterfaceTask::run() {
     plaintext_protocol_.setProtocolChangeCallback(protocol_change_callback);
     proto_protocol_.setProtocolChangeCallback(protocol_change_callback);
 
-    Page* current_page = &main_menu_page_;
-    applyConfig(*current_page->getPageConfig(), false);
-
-    PageChangeCallback page_change_callback = [this, &current_page] (page_t page) {
-        switch (page) {
-            case MAIN_MENU_PAGE:
-                current_page = &main_menu_page_;
-                break;
-            case SETTINGS_PAGE:
-                current_page = &settings_page_;
-                break;
-            case MORE_PAGE:
-                current_page = &more_page_;
-                break;
-            case DEMO_PAGE:
-                current_page = &demo_page_;
-                break;
-            case LIGHTS_PAGE:
-                current_page = &lights_page_;
-                break;
-            default:
-                log("Unknown page requested");
-                break;
-        }
-        applyConfig(*current_page->getPageConfig(), false);
+    // Create a lookup table for pages
+    // Generate lambda to handle page changes
+    // Assign callback to all pages
+    std::map<page_t, Page*> page_map = {
+        { MAIN_MENU_PAGE, &main_menu_page_ },
+        { SETTINGS_PAGE,  &settings_page_  },
+        { MORE_PAGE,      &more_page_      },
+        { DEMO_PAGE,      &demo_page_      },
+        { LIGHTS_PAGE,    &lights_page_    }
     };
+    Page* current_page = NULL;
+    PageChangeCallback page_change_callback = [this, &current_page, &page_map] (page_t page) {
+        auto it = page_map.find(page);
+        if (it != page_map.end()) {            
+            current_page = it->second;
 
-    main_menu_page_.setPageChangeCallback(page_change_callback);
-    more_page_.setPageChangeCallback(page_change_callback);
-    lights_page_.setPageChangeCallback(page_change_callback);
-    demo_page_.setPageChangeCallback(page_change_callback);
-    settings_page_.setPageChangeCallback(page_change_callback);
+            // If the page has been visited previously, set the initial position to the previous position on that page
+            PB_SmartKnobConfig *page_config = current_page->getPageConfig(); // TODO: This might have to be a pointer
+            if (current_page->getVisited()) {
+                // log("Updating position to previous position on page");
+                page_config->position = current_page->getPreviousPosition();
+            } else {
+                // log("Marking page as visited");
+                current_page->setVisited(true);
+                current_page->setPreviousPosition(page_config->position);
+            }
+            applyConfig(*page_config, false);
+        } else {
+            log("Unknown page requested");
+        }
+    };
+    for (auto&[_, page] : page_map) {
+        page->setPageChangeCallback(page_change_callback);
+    }
+
+    // Set initial page
+    page_change_callback(MAIN_MENU_PAGE);
 
     // Interface loop:
     while (1) {
         if (xQueueReceive(knob_state_queue_, &latest_state_, 0) == pdTRUE) {
             publishState();
+            current_page->setPreviousPosition(latest_state_.current_position);
             current_page->handleState(latest_state_);
         }
 

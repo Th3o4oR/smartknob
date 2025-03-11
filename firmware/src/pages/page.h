@@ -13,6 +13,11 @@ typedef enum {
     DEMO_PAGE,
 } page_t;
 
+/**
+ * @brief Callback to handle page changes
+ * 
+ * @param page The requested page
+ */
 typedef std::function<void(page_t)> PageChangeCallback;
 
 class Page {
@@ -27,7 +32,22 @@ class Page {
         virtual void setPageChangeCallback(PageChangeCallback cb) {
             page_change_callback_ = cb;
         }
+
+        virtual void setVisited(bool visited) {
+            visited_ = visited;
+        }
+        virtual bool getVisited() {
+            return visited_;
+        }
+        virtual void setPreviousPosition(int32_t position) {
+            previous_position_ = position;
+        }
+        virtual int32_t getPreviousPosition() {
+            return previous_position_;
+        }
     
     protected:
+        bool visited_ = false;
+        int32_t previous_position_ = 0;
         PageChangeCallback page_change_callback_;
 };
