@@ -187,11 +187,11 @@ void InterfaceTask::run() {
             PB_SmartKnobConfig *page_config = current_page->getPageConfig(); // TODO: This might have to be a pointer
             if (current_page->getVisited()) {
                 // log("Updating position to previous position on page");
-                page_config->position = current_page->getPreviousPosition();
+                page_config->initial_position = current_page->getPreviousPosition();
             } else {
                 // log("Marking page as visited");
                 current_page->setVisited(true);
-                current_page->setPreviousPosition(page_config->position);
+                current_page->setPreviousPosition(page_config->initial_position);
             }
             applyConfig(*page_config, false);
         } else {

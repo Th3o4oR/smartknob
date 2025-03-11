@@ -30,7 +30,7 @@ class LightsPage : public Page {
                         VIEW_DIAL,
                         "Desk lights"
           },
-        .position               = 127,
+        .initial_position       = 127,
         .sub_position_unit      = 0,
         .position_nonce         = 6,
         .min_position           = 0,

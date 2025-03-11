@@ -9,7 +9,7 @@ import {SmartKnobWebSerial} from 'smartknobjs-webserial'
 type Config = NoUndefinedField<PB.ISmartKnobConfig>
 
 const defaultConfig: Config = {
-    position: 0,
+    initial_position: 0,
     subPositionUnit: 0,
     positionNonce: Math.floor(Math.random() * 255),
     minPosition: 0,
@@ -39,7 +39,7 @@ export const App: React.FC<AppProps> = () => {
         smartKnob?.sendConfig(PB.SmartKnobConfig.create(smartKnobConfig))
     }, [
         smartKnob,
-        smartKnobConfig.position,
+        smartKnobConfig.initial_position,
         smartKnobConfig.subPositionUnit,
         smartKnobConfig.positionNonce,
         smartKnobConfig.minPosition,
@@ -112,7 +112,7 @@ export const App: React.FC<AppProps> = () => {
                                 onSubmit={(event) => {
                                     event.preventDefault()
                                     setSmartKnobConfig({
-                                        position: parseInt(pendingSmartKnobConfig.position) || 0,
+                                        initial_position: parseInt(pendingSmartKnobConfig.initial_position) || 0,
                                         subPositionUnit: parseFloat(pendingSmartKnobConfig.subPositionUnit) || 0,
                                         positionNonce: parseInt(pendingSmartKnobConfig.positionNonce) || 0,
                                         minPosition: parseInt(pendingSmartKnobConfig.minPosition) || 0,
@@ -131,14 +131,14 @@ export const App: React.FC<AppProps> = () => {
                                 }}
                             >
                                 <TextField
-                                    label="Position"
-                                    value={pendingSmartKnobConfig.position}
+                                    label="Initial position"
+                                    value={pendingSmartKnobConfig.initial_position}
                                     type="number"
                                     onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                                         setPendingSmartKnobConfig((cur) => {
                                             return {
                                                 ...cur,
-                                                position: event.target.value,
+                                                initial_position: event.target.value,
                                             }
                                         })
                                     }}

@@ -32,7 +32,7 @@ class DemoPage : public Page {
                     VIEW_DIAL,
                     "Unbounded"
                 },
-                .position = 0,
+                .initial_position = 0,
                 .sub_position_unit = 0,
                 .position_nonce = 0,
                 .min_position = 0,
@@ -54,7 +54,7 @@ class DemoPage : public Page {
                     VIEW_DIAL,
                     "Bounded 0-10"
                 },
-                .position = 0,
+                .initial_position = 0,
                 .sub_position_unit = 0,
                 .position_nonce = 1,
                 .min_position = 0,
@@ -76,7 +76,7 @@ class DemoPage : public Page {
                     VIEW_DIAL,
                     "Multi-rev\nNo detents"
                 },
-                .position = 0,
+                .initial_position = 0,
                 .sub_position_unit = 0,
                 .position_nonce = 2,
                 .min_position = 0,
@@ -98,7 +98,7 @@ class DemoPage : public Page {
                     VIEW_DIAL,
                     "On/off\nStrong detent"
                 },
-                .position = 0,
+                .initial_position = 0,
                 .sub_position_unit = 0,
                 .position_nonce = 3,
                 .min_position = 0,
@@ -120,7 +120,7 @@ class DemoPage : public Page {
                     VIEW_DIAL,
                     "Return-to-center"
                 },
-                .position = 0,
+                .initial_position = 0,
                 .sub_position_unit = 0,
                 .position_nonce = 4,
                 .min_position = 0,
@@ -142,7 +142,7 @@ class DemoPage : public Page {
                     VIEW_DIAL,
                     "Fine values\nNo detents"
                 },
-                .position = 127,
+                .initial_position = 127,
                 .sub_position_unit = 0,
                 .position_nonce = 5,
                 .min_position = 0,
@@ -164,7 +164,7 @@ class DemoPage : public Page {
                     VIEW_DIAL,
                     "Fine values\nWith detents"
                 },
-                .position = 127,
+                .initial_position = 127,
                 .sub_position_unit = 0,
                 .position_nonce = 5,
                 .min_position = 0,
@@ -186,7 +186,7 @@ class DemoPage : public Page {
                     VIEW_DIAL,
                     "Coarse values\nStrong detents"
                 },
-                .position = 0,
+                .initial_position = 0,
                 .sub_position_unit = 0,
                 .position_nonce = 6,
                 .min_position = 0,
@@ -208,7 +208,7 @@ class DemoPage : public Page {
                     VIEW_DIAL,
                     "Coarse values\nWeak detents"
                 },
-                .position = 0,
+                .initial_position = 0,
                 .sub_position_unit = 0,
                 .position_nonce = 6,
                 .min_position = 0,
@@ -230,7 +230,7 @@ class DemoPage : public Page {
                     VIEW_DIAL,
                     "Magnetic detents"
                 },
-                .position = 0,
+                .initial_position = 0,
                 .sub_position_unit = 0,
                 .position_nonce = 7,
                 .min_position = 0,
@@ -252,7 +252,7 @@ class DemoPage : public Page {
                     VIEW_DIAL,
                     "Return-to-center\nwith detents"
                 },
-                .position = 0,
+                .initial_position = 0,
                 .sub_position_unit = 0,
                 .position_nonce = 8,
                 .min_position = -6,

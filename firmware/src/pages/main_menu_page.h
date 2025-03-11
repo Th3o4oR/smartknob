@@ -62,7 +62,7 @@ class MainMenuPage : public Page {
         {
             .has_view_config = true,
             .view_config = view_config,
-            .position = 0,
+            .initial_position = 0,
             .sub_position_unit = 0,
             .position_nonce = 0,
             .min_position = 0,

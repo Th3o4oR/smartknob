@@ -43,7 +43,7 @@ typedef struct _PB_SmartKnobConfig {
  of 5 and the current position is 3, the position may remain at 3 if the config
  change to 5 was previously handled. If you need to force a position update, see
  position_nonce. */
-    int32_t position;
+    int32_t initial_position;
     /* *
  Set the fractional position. Typical range: (-snap_point, snap_point).
 
@@ -339,7 +339,7 @@ X(a, STATIC,   SINGULAR, STRING,   icon,              2)
 
 #define PB_SmartKnobConfig_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  view_config,       1) \
-X(a, STATIC,   SINGULAR, INT32,    position,          2) \
+X(a, STATIC,   SINGULAR, INT32,    initial_position,          2) \
 X(a, STATIC,   SINGULAR, FLOAT,    sub_position_unit,   3) \
 X(a, STATIC,   SINGULAR, UINT32,   position_nonce,    4) \
 X(a, STATIC,   SINGULAR, INT32,    min_position,      5) \

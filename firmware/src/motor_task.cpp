@@ -87,7 +87,7 @@ void MotorTask::run() {
 
     float current_detent_center = motor.shaft_angle;
     PB_SmartKnobConfig config = {
-        .position = 0,
+        .initial_position = 0,
         .sub_position_unit = 0,
         .position_nonce = 0,
         .min_position = 0,
@@ -138,11 +138,11 @@ void MotorTask::run() {
 
                     // Change haptic input mode
                     bool position_updated = false;
-                    if (new_config.position != config.position
+                    if (new_config.initial_position != config.initial_position
                             || new_config.sub_position_unit != config.sub_position_unit
                             || new_config.position_nonce != config.position_nonce) {
                         log("applying position change");
-                        current_position = new_config.position;
+                        current_position = new_config.initial_position;
                         position_updated = true;
                     }
 

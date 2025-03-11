@@ -7,7 +7,7 @@
 bool config_eq(PB_SmartKnobConfig& first, PB_SmartKnobConfig& second) {
     return first.detent_strength_unit == second.detent_strength_unit
         && first.endstop_strength_unit == second.endstop_strength_unit
-        && first.position == second.position
+        && first.initial_position == second.initial_position
         && first.position_nonce == second.position_nonce
         && first.min_position == second.min_position
         && first.max_position == second.max_position

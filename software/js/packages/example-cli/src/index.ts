@@ -1,6 +1,6 @@
 import SerialPort = require('serialport')
-import {SmartKnobNode} from 'smartknobjs-node'
-import {PB} from 'smartknobjs-proto'
+import { SmartKnobNode } from 'smartknobjs-node'
+import { PB } from 'smartknobjs-proto'
 
 const main = async () => {
     const ports = await SerialPort.list()
@@ -32,7 +32,7 @@ const main = async () => {
             // Only log if it's a significant change (major position change, or at least 5 degrees)
             const radianChange =
                 (message.smartknobState.subPositionUnit ?? 0) *
-                    (message.smartknobState.config?.positionWidthRadians ?? 0) -
+                (message.smartknobState.config?.positionWidthRadians ?? 0) -
                 (lastLoggedState?.subPositionUnit ?? 0) * (lastLoggedState?.config?.positionWidthRadians ?? 0)
             if (
                 message.smartknobState.currentPosition !== lastLoggedState?.currentPosition ||
@@ -40,7 +40,7 @@ const main = async () => {
             ) {
                 console.log(
                     `State:\n${JSON.stringify(
-                        PB.SmartKnobState.toObject(message.smartknobState as PB.SmartKnobState, {defaults: true}),
+                        PB.SmartKnobState.toObject(message.smartknobState as PB.SmartKnobState, { defaults: true }),
                         undefined,
                         4,
                     )}`,
@@ -53,7 +53,7 @@ const main = async () => {
         PB.SmartKnobConfig.create({
             detentStrengthUnit: 1,
             endstopStrengthUnit: 1,
-            position: 0,
+            initial_position: 0,
             subPositionUnit: 0,
             positionNonce: Math.floor(Math.random() * 255), // Pick a random nonce to force a position reset on start
             minPosition: 0,

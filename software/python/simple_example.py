@@ -42,7 +42,7 @@ def _run_example():
         while True:
             input()
             config = smartknob_pb2.SmartKnobConfig()
-            config.position = 0
+            config.initial_position = 0
             config.min_position = 0
             config.max_position = 5
             config.position_width_radians = math.radians(10)

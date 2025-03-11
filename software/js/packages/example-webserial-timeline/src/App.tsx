@@ -46,7 +46,7 @@ export const App: React.FC<AppProps> = ({info}) => {
         }) as NoUndefinedField<PB.ISmartKnobState>,
     )
     const [smartKnobConfig, setSmartKnobConfig] = useState<Config>({
-        position: 0,
+        initial_position: 0,
         subPositionUnit: 0,
         positionNonce: Math.floor(Math.random() * 255),
         minPosition: 0,
@@ -67,7 +67,7 @@ export const App: React.FC<AppProps> = ({info}) => {
         smartKnob?.sendConfig(PB.SmartKnobConfig.create(smartKnobConfig))
     }, [
         smartKnob,
-        smartKnobConfig.position,
+        smartKnobConfig.initial_position,
         smartKnobConfig.subPositionUnit,
         smartKnobConfig.positionNonce,
         smartKnobConfig.minPosition,
@@ -127,7 +127,7 @@ export const App: React.FC<AppProps> = ({info}) => {
                     const positionWhole = Math.round(position)
                     const subPositionUnit = position - positionWhole
                     return {
-                        position: positionWhole,
+                        initial_position: positionWhole,
                         subPositionUnit,
                         positionNonce: (curConfig.positionNonce + 1) % 256,
                         minPosition: 0,
@@ -149,7 +149,7 @@ export const App: React.FC<AppProps> = ({info}) => {
             } else if (newMode === Mode.Frames) {
                 setSmartKnobConfig((curConfig) => {
                     return {
-                        position: Math.floor(playbackState.currentFrame),
+                        initial_position: Math.floor(playbackState.currentFrame),
                         subPositionUnit: 0,
                         positionNonce: (curConfig.positionNonce + 1) % 256,
                         minPosition: 0,
@@ -169,7 +169,7 @@ export const App: React.FC<AppProps> = ({info}) => {
             } else if (newMode === Mode.Speed) {
                 setSmartKnobConfig((curConfig) => {
                     return {
-                        position: 0,
+                        initial_position: 0,
                         subPositionUnit: 0,
                         positionNonce: (curConfig.positionNonce + 1) % 256,
                         minPosition: playbackState.currentFrame === 0 ? 0 : -6,
@@ -247,7 +247,7 @@ export const App: React.FC<AppProps> = ({info}) => {
                     const positionWhole = Math.round(position)
                     const subPositionUnit = position - positionWhole
                     positionInfo = {
-                        position,
+                        initial_position,
                         subPositionUnit,
                         positionNonce: (curConfig.positionNonce + 1) % 256,
                         minPosition: 0,
