@@ -24,6 +24,9 @@ build/
 # Apple/Macintosh
 .DS_Store
 
+# Secrets
+secrets.h
+
 # VSCode
 .vscode/*
 !.vscode/settings.json
