@@ -4,6 +4,8 @@
 #include "../motor_task.h"
 #include "../connectivity_task.h"
 
+constexpr unsigned long PAGE_SELECTION_COOLDOWN = 50; // Really only needs to be longer than the motor_task's update interval (5ms as of this comment)
+
 class LightsPage : public Page {
   public:
     LightsPage(ConnectivityTask &connectivity_task)

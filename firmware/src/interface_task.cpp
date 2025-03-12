@@ -182,6 +182,7 @@ void InterfaceTask::run() {
         auto it = page_map.find(page);
         if (it != page_map.end()) {            
             current_page = it->second;
+            current_page->setPageSelectionTime(millis());
 
             // If the page has been visited previously, set the initial position to the previous position on that page
             PB_SmartKnobConfig *page_config = current_page->getPageConfig(); // TODO: This might have to be a pointer
@@ -271,12 +272,12 @@ void InterfaceTask::updateHardware() {
         static float lux_avg;
         float lux = veml.readLux();
         lux_avg = lux * LUX_ALPHA + lux_avg * (1 - LUX_ALPHA);
-        static uint32_t last_als;
-        if (millis() - last_als > 1000 && strain_calibration_step_ == 0) {
-            snprintf(buf_, sizeof(buf_), "millilux: %.2f", lux*1000);
-            log(buf_);
-            last_als = millis();
-        }
+        // static uint32_t last_als;
+        // if (millis() - last_als > 1000 && strain_calibration_step_ == 0) {
+        //     snprintf(buf_, sizeof(buf_), "millilux: %.2f", lux*1000);
+        //     log(buf_);
+        //     last_als = millis();
+        // }
     #endif
 
     static bool pressed;
@@ -284,12 +285,13 @@ void InterfaceTask::updateHardware() {
         if (scale.wait_ready_timeout(100)) {
             strain_reading_ = scale.read();
 
-            static uint32_t last_reading_display;
-            if (millis() - last_reading_display > 1000 && strain_calibration_step_ == 0) {
-                snprintf(buf_, sizeof(buf_), "HX711 reading: %d", strain_reading_);
-                log(buf_);
-                last_reading_display = millis();
-            }
+            // static uint32_t last_reading_display;
+            // if (millis() - last_reading_display > 100 && strain_calibration_step_ == 0) {
+            //     snprintf(buf_, sizeof(buf_), "HX711 reading: %d", strain_reading_);
+            //     log(buf_);
+            //     last_reading_display = millis();
+            // }
+            
             if (configuration_loaded_ && configuration_value_.has_strain && strain_calibration_step_ == 0) {
                 // TODO: calibrate and track (long term moving average) idle point (lower)
                 press_value_unit = lerp(strain_reading_, configuration_value_.strain.idle_value, configuration_value_.strain.idle_value + configuration_value_.strain.press_delta, 0, 1);
