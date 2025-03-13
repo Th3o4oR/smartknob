@@ -28,7 +28,7 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
     friend class Task<InterfaceTask>; // Allow base Task to invoke protected run()
 
     public:
-        InterfaceTask(const uint8_t task_core, MotorTask& motor_task, DisplayTask* display_task, ConnectivityTask& connectivity_task);
+        InterfaceTask(const uint8_t task_core, const uint32_t stack_depth, MotorTask& motor_task, DisplayTask* display_task, ConnectivityTask& connectivity_task);
         virtual ~InterfaceTask();
 
         SemaphoreHandle_t * i2c_mutex;

@@ -16,8 +16,8 @@ String                action_topic    = "knob/" + smartknob_id + "/action";
 Adafruit_MQTT_Publish discovery_feed  = Adafruit_MQTT_Publish(&mqtt, discovery_topic.c_str());
 Adafruit_MQTT_Publish action_feed     = Adafruit_MQTT_Publish(&mqtt, action_topic.c_str());
 
-ConnectivityTask::ConnectivityTask(const uint8_t task_core)
-    : Task("Connectivity", 4096, 1, task_core) {
+ConnectivityTask::ConnectivityTask(const uint8_t task_core, const uint32_t stack_depth)
+    : Task("Connectivity", stack_depth, 1, task_core) {
     queue_ = xQueueCreate(5, sizeof(Message));
     assert(queue_ != NULL);
 }

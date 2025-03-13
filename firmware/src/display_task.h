@@ -18,7 +18,7 @@ class DisplayTask : public Task<DisplayTask> {
     friend class Task<DisplayTask>; // Allow base Task to invoke protected run()
 
     public:
-        DisplayTask(const uint8_t task_core);
+        DisplayTask(const uint8_t task_core, const uint32_t stack_depth);
         ~DisplayTask();
 
         QueueHandle_t getKnobStateQueue();

@@ -8,16 +8,31 @@
 
 Configuration config;
 
+#define DISPLAY_TASK_STACK_DEPTH      8192
+#define MOTOR_TASK_STACK_DEPTH        4500
+#define CONNECTIVITY_TASK_STACK_DEPTH 4096
+#define INTERFACE_TASK_STACK_DEPTH    3600
+
+/*
+    Stack high water (2025-03-13):
+    (after running motor calibration, connecting to WiFi and sending MQTT messages)
+    main:         5388 free (can't be changed?)
+    display:      4092 free -> (8192-4092) = 4100 used
+    motor:         448 free -> (4500- 448) = 4052 used
+    interface:    1136 free -> (3600-1136) = 2464 used
+    connectivity: 1848 free -> (4096-1848) = 2248 used
+*/
+
 #if SK_DISPLAY
-static DisplayTask display_task(0);
+static DisplayTask display_task(0, DISPLAY_TASK_STACK_DEPTH);
 static DisplayTask* display_task_p = &display_task;
 #else
 static DisplayTask* display_task_p = nullptr;
 #endif
-static MotorTask motor_task(1, config);
-static ConnectivityTask connectivity_task(0);
+static MotorTask motor_task(1, MOTOR_TASK_STACK_DEPTH, config);
+static ConnectivityTask connectivity_task(0, CONNECTIVITY_TASK_STACK_DEPTH);
 
-InterfaceTask interface_task(0, motor_task, display_task_p, connectivity_task);
+InterfaceTask interface_task(0, INTERFACE_TASK_STACK_DEPTH, motor_task, display_task_p, connectivity_task);
 
 void setup() {
   #if SK_DISPLAY

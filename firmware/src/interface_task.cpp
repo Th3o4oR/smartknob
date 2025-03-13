@@ -30,8 +30,8 @@ HX711 scale;
 Adafruit_VEML7700 veml = Adafruit_VEML7700();
 #endif
 
-InterfaceTask::InterfaceTask(const uint8_t task_core, MotorTask& motor_task, DisplayTask* display_task, ConnectivityTask& connectivity_task) : 
-        Task("Interface", 3600, 1, task_core),
+InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth, MotorTask& motor_task, DisplayTask* display_task, ConnectivityTask& connectivity_task) : 
+        Task("Interface", stack_depth, 1, task_core),
         stream_(),
         motor_task_(motor_task),
         display_task_(display_task),

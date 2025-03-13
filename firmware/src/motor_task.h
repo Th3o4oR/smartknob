@@ -34,7 +34,7 @@ class MotorTask : public Task<MotorTask> {
     friend class Task<MotorTask>; // Allow base Task to invoke protected run()
 
     public:
-        MotorTask(const uint8_t task_core, Configuration& configuration);
+        MotorTask(const uint8_t task_core, const uint32_t stack_depth, Configuration& configuration);
         ~MotorTask();
 
         void setConfig(const PB_SmartKnobConfig& config);
