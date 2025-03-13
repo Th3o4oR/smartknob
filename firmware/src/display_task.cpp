@@ -138,9 +138,9 @@ void DisplayTask::run() {
     touch.begin();
     #endif
 
-    ledcSetup(LEDC_CHANNEL_LCD_BACKLIGHT, 5000, 12);
+    ledcSetup(LEDC_CHANNEL_LCD_BACKLIGHT, 5000, SK_BACKLIGHT_BIT_DEPTH); // Set up a signal at 5000 Hz, with the resolution defined in the ini file
     ledcAttachPin(PIN_LCD_BACKLIGHT, LEDC_CHANNEL_LCD_BACKLIGHT);
-    ledcWrite(LEDC_CHANNEL_LCD_BACKLIGHT, UINT16_MAX);
+    ledcWrite(LEDC_CHANNEL_LCD_BACKLIGHT, (1 << SK_BACKLIGHT_BIT_DEPTH) - 1); // Set the duty cycle to max, to show the green initialization screen
 
     lv_init();
     lv_color_t *buf = (lv_color_t*) heap_caps_malloc(DISP_BUF_SIZE * sizeof(lv_color_t), MALLOC_CAP_DMA);
