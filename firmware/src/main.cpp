@@ -35,48 +35,57 @@ static ConnectivityTask connectivity_task(0, CONNECTIVITY_TASK_STACK_DEPTH);
 InterfaceTask interface_task(0, INTERFACE_TASK_STACK_DEPTH, motor_task, display_task_p, connectivity_task);
 
 void setup() {
-  #if SK_DISPLAY
-  display_task.setLogger(&interface_task);
-  display_task.begin();
+    #if SK_DISPLAY
+    display_task.setLogger(&interface_task);
+    display_task.begin();
 
-  // Connect display to motor_task's knob state feed
-  motor_task.addListener(display_task.getKnobStateQueue());
-  #endif
+    // Connect display to motor_task's knob state feed
+    motor_task.addListener(display_task.getKnobStateQueue());
+    #endif
 
-  interface_task.begin();
+    interface_task.begin();
 
-  config.setLogger(&interface_task);
-  config.loadFromDisk();
+    config.setLogger(&interface_task);
+    config.loadFromDisk();
 
-  interface_task.setConfiguration(&config);
+    interface_task.setConfiguration(&config);
 
-  motor_task.setLogger(&interface_task);
-  motor_task.begin();
+    motor_task.setLogger(&interface_task);
+    motor_task.begin();
 
-  connectivity_task.setLogger(&interface_task);
-  connectivity_task.begin();
+    connectivity_task.setLogger(&interface_task);
+    connectivity_task.begin();
 
-  // Free up the Arduino loop task
-  vTaskDelete(NULL);
+    // Free up the Arduino loop task
+    vTaskDelete(NULL);
 }
 
 void loop() {
-  // char buf[50];
-  // static uint32_t last_stack_debug;
-  // if (millis() - last_stack_debug > 1000) {
-  //   interface_task.log("Stack high water:");
-  //   snprintf(buf, sizeof(buf), "  main: %d", uxTaskGetStackHighWaterMark(NULL));
-  //   interface_task.log(buf);
-  //   #if SK_DISPLAY
-  //     snprintf(buf, sizeof(buf), "  display: %d", uxTaskGetStackHighWaterMark(display_task.getHandle()));
-  //     interface_task.log(buf);
-  //   #endif
-  //   snprintf(buf, sizeof(buf), "  motor: %d", uxTaskGetStackHighWaterMark(motor_task.getHandle()));
-  //   interface_task.log(buf);
-  //   snprintf(buf, sizeof(buf), "  interface: %d", uxTaskGetStackHighWaterMark(interface_task.getHandle()));
-  //   interface_task.log(buf);
-  //   snprintf(buf, sizeof(buf), "Heap -- free: %d, largest: %d", heap_caps_get_free_size(MALLOC_CAP_8BIT), heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
-  //   interface_task.log(buf);
-  //   last_stack_debug = millis();
-  // }
+    char buf[256];
+    static uint32_t last_stack_debug;
+    if (millis() - last_stack_debug > 1000) {
+        unsigned int main_high_water = uxTaskGetStackHighWaterMark(NULL);
+        unsigned int display_high_water = uxTaskGetStackHighWaterMark(display_task.getHandle());
+        unsigned int motor_high_water = uxTaskGetStackHighWaterMark(motor_task.getHandle());
+        unsigned int interface_high_water = uxTaskGetStackHighWaterMark(interface_task.getHandle());
+        unsigned int connectivity_high_water = uxTaskGetStackHighWaterMark(connectivity_task.getHandle());
+
+        snprintf(buf, sizeof(buf),
+            "Stack high water: main: % 4d"
+            ", display: % 4d"
+            ", motor: % 4d"
+            ", interface: % 4d"
+            ", connectivity: % 4d",
+            main_high_water,
+            display_high_water,
+            motor_high_water,
+            interface_high_water,
+            connectivity_high_water
+        );
+        interface_task.log(buf);
+
+        snprintf(buf, sizeof(buf), "Heap -- free: %d, largest: %d", heap_caps_get_free_size(MALLOC_CAP_8BIT), heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
+        interface_task.log(buf);
+        last_stack_debug = millis();
+    }
 }
