@@ -199,7 +199,11 @@ void InterfaceTask::run() {
             log("Unknown page requested");
         }
     };
-    for (auto&[_, page] : page_map) {
+
+    // Assign page change callback to all pages
+    // std::map<page_t, Page*>::iterator it; // Could use structured bindings if using C++17
+    for (auto it = page_map.begin(); it != page_map.end(); it++) {
+        Page *page = it->second;
         page->setPageChangeCallback(page_change_callback);
     }
 
