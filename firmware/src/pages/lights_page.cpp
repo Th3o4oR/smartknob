@@ -12,10 +12,6 @@ int32_t brightnessToPosition(uint8_t brightness, PB_SmartKnobConfig config) {
 }
 
 void LightsPage::handleState(PB_SmartKnobState state) {
-    // Prevent publishing of MQTT messages within a certain time after the page is selected
-    if (millis() - page_selection_time_ < PAGE_SELECTION_COOLDOWN) {
-        return;
-    }
 
     if (last_published_position_ != state.current_position) {
         if (millis() - last_publish_time_ > MQTT_PUBLISH_FREQUENCY_MS) {

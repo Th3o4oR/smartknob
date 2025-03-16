@@ -35,6 +35,7 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
 
         void log(const char* msg) override;
         void setConfiguration(Configuration* configuration);
+        uint8_t incrementPositionNonce();
 
     protected:
         void run();
@@ -64,6 +65,8 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
         bool remote_controlled_ = false;
         int current_config_ = 0;
         uint8_t press_count_ = 1;
+
+        uint8_t position_nonce_ = 0; // This will overwrite all position_nonce values defined in the config, but should work fine, since it achieves the same thing
 
         PB_SmartKnobState latest_state_ = {};
         PB_SmartKnobConfig latest_config_ = {};

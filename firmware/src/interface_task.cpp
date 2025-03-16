@@ -183,7 +183,6 @@ void InterfaceTask::run() {
         auto it = page_map.find(page);
         if (it != page_map.end()) {            
             current_page = it->second;
-            current_page->setPageSelectionTime(millis());
 
             // If the page has been visited previously, set the initial position to the previous position on that page
             PB_SmartKnobConfig *page_config = current_page->getPageConfig(); // TODO: This might have to be a pointer
@@ -204,15 +203,30 @@ void InterfaceTask::run() {
         page->setPageChangeCallback(page_change_callback);
     }
 
+    // Assign special callbacks to some pages
+    lights_page_.setConfigChangeCallback([this] (PB_SmartKnobConfig *config) {
+        applyConfig(*config, false);
+    });
+
     // Set initial page
     page_change_callback(MAIN_MENU_PAGE);
 
     // Interface loop:
     while (1) {
-        if (xQueueReceive(knob_state_queue_, &latest_state_, 0) == pdTRUE) {
-            publishState();
-            current_page->setPreviousPosition(latest_state_.current_position);
-            current_page->handleState(latest_state_);
+        PB_SmartKnobState new_state;
+        if (xQueueReceive(knob_state_queue_, &new_state, 0) == pdTRUE) {
+            // Discard all outdated state messages (incorrect nonce)
+            // if (true) {
+            if (new_state.config.position_nonce == position_nonce_) {
+                latest_state_ = new_state;
+                publishState();
+                current_page->setPreviousPosition(latest_state_.current_position);
+                current_page->handleState(latest_state_);
+            } else {
+                char buf[128];
+                snprintf(buf, sizeof(buf), "Discarding outdated state message (expected nonce %d, got %d)", position_nonce_, latest_state_.config.position_nonce);
+                log(buf);
+            }
         }
 
         current_protocol_->loop();
@@ -372,7 +386,17 @@ void InterfaceTask::publishState() {
     current_protocol_->handleState(latest_state_);
 }
 
+uint8_t InterfaceTask::incrementPositionNonce() {
+    // SemaphoreGuard lock(mutex_); // TODO: Should this be locked?
+    position_nonce_++;
+    return position_nonce_;
+}
+
 void InterfaceTask::applyConfig(PB_SmartKnobConfig& config, bool from_remote) {
+    // Generate a new nonce for the updated state
+    config.position_nonce = incrementPositionNonce();
+    // log(("Applying config with nonce " + String(config.position_nonce)).c_str());
+    
     remote_controlled_ = from_remote;
     latest_config_ = config;
     motor_task_.setConfig(config);

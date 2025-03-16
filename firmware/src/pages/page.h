@@ -45,9 +45,6 @@ class Page {
         virtual int32_t getPreviousPosition() {
             return previous_position_;
         }
-        virtual void setPageSelectionTime(unsigned long time) {
-            page_selection_time_ = time;
-        }
     
     protected:
         bool visited_ = false; // Keeps track of whether the page has been visited before. This is used to determine whether to set the initial position to the previous position on the page
@@ -63,7 +60,7 @@ class Page {
         //         When the motor_task updates its config and sends a new value over the channels (5ms later as of writing this comment), the lights page will send a new MQTT message with the correct value (213).
         //     This variable could for example be used to prevent the lights page from sending MQTT messages within the first 20ms after each time the page is entered,
         //     giving the motor task enough time to catch up.
-        unsigned long page_selection_time_ = 0;
+        // unsigned long page_selection_time_ = 0;
 
         PageChangeCallback page_change_callback_;
 };

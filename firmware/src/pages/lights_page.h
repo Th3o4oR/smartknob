@@ -4,6 +4,12 @@
 #include "../motor_task.h"
 #include "../connectivity_task.h"
 
+/**
+ * @brief Callback to handle page changes
+ * 
+ * @param config The new config
+ */
+typedef std::function<void(PB_SmartKnobConfig *)> ConfigChangeCallback;
 static constexpr uint32_t MQTT_PUBLISH_FREQUENCY_MS = 500; // Frequency at which the lights page will publish its position to MQTT
 
 class LightsPage : public Page {
@@ -21,8 +27,16 @@ class LightsPage : public Page {
   private:
     ConnectivityTask &connectivity_task_;
         void setLogger(Logger *logger);
+
+        void setConfigChangeCallback(ConfigChangeCallback callback) {
+            config_change_callback_ = callback;
+        }
+
+    private:
         Logger *logger_;
         void log(const char *msg);
+
+        ConfigChangeCallback config_change_callback_;
 
     uint32_t last_publish_time;
     uint32_t last_published_position;
