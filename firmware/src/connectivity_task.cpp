@@ -56,9 +56,6 @@ void ConnectivityTask::receiveFromSubscriptions() {
             // snprintf(buf, sizeof(buf), "Got: %s", (char *)light_feed.lastread);
             // log(buf);
 
-            // Format is: {"brightness":132,"color":{"x":0.4511,"y":0.4084},"color_mode":"color_temp","color_options":null,"color_temp":355,"effect":null,"identify":null,"level_config":{"on_level":"previous"},"linkquality":176,"power_on_behavior":null,"state":"ON","update":{"...":"..."},"
-            // Extract new brightness value
-
             JsonDocument payload;
             DeserializationError deserialization_error = deserializeJson(payload, (char *)light_feed.lastread);
             if (deserialization_error) {
@@ -66,13 +63,8 @@ void ConnectivityTask::receiveFromSubscriptions() {
                 log(deserialization_error_str.c_str());
                 return;
             }
-            // log("Checking for brightness key in payload");
-            // delay(10);
             if (payload["brightness"].is<uint8_t>()) {
                 uint8_t brightness = payload["brightness"]; // TODO: Replace with a command/message struct, like what is implemented for the motor_task
-                // log(("Brightness: " + String(brightness)).c_str());
-                // delay(10);
-
                 for (auto listener : notification_listeners_) {
                     xQueueSend(listener, &brightness, portMAX_DELAY);
                     // xQueueOverwrite(listener, &brightness);
@@ -195,7 +187,7 @@ bool ConnectivityTask::initWiFi() {
 
     snprintf(buf, sizeof(buf), "Attempting connection to %s", WIFI_SSID);
     log(buf);
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD); // This is blocking
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     return false;
 }
 
