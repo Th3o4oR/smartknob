@@ -56,6 +56,7 @@ InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth
         assert(display_task != nullptr);
     #endif
 
+    lights_page_.setLogger(this);
 
     log_queue_ = xQueueCreate(10, sizeof(std::string *));
     assert(log_queue_ != NULL);

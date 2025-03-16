@@ -4,7 +4,7 @@
 #include "../motor_task.h"
 #include "../connectivity_task.h"
 
-constexpr unsigned long PAGE_SELECTION_COOLDOWN = 50; // Really only needs to be longer than the motor_task's update interval (5ms as of this comment)
+static constexpr uint32_t MQTT_PUBLISH_FREQUENCY_MS = 500; // Frequency at which the lights page will publish its position to MQTT
 
 class LightsPage : public Page {
   public:
@@ -20,31 +20,34 @@ class LightsPage : public Page {
 
   private:
     ConnectivityTask &connectivity_task_;
+        void setLogger(Logger *logger);
+        Logger *logger_;
+        void log(const char *msg);
 
     uint32_t last_publish_time;
     uint32_t last_published_position;
 
-    PB_SmartKnobConfig config_ =
-      {
-        .has_view_config = true,
-        .view_config =
-          {
-                        VIEW_DIAL,
-                        "Desk lights"
-          },
-        .initial_position       = 127,
-        .sub_position_unit      = 0,
-        .position_nonce         = 6,
-        .min_position           = 0,
-        .max_position           = 255,
-        .infinite_scroll        = false,
-        .position_width_radians = 1 * PI / 180,
-        .detent_strength_unit   = 0.4,
-        .endstop_strength_unit  = 1,
-        .snap_point             = 1.1,
-        .detent_positions_count = 0,
-        .detent_positions       = {},
-        .snap_point_bias        = 0,
-        .led_hue                = 30
-    };
+        PB_SmartKnobConfig config_ =
+        {
+            .has_view_config = true,
+            .view_config =
+            {
+                            VIEW_DIAL,
+                            "Bedroom lights"
+            },
+            .initial_position       = 50,
+            .sub_position_unit      = 0,
+            .position_nonce         = 0,
+            .min_position           = 0,
+            .max_position           = 100,
+            .infinite_scroll        = false,
+            .position_width_radians = 2.4 * PI / 180, // How many degrees the knob should turn for each position. At 1 degree, 0-100 means the know will have a range of 100 degrees
+            .detent_strength_unit   = 0.4,
+            .endstop_strength_unit  = 1,
+            .snap_point             = 1.1,
+            .detent_positions_count = 0,
+            .detent_positions       = {},
+            .snap_point_bias        = 0,
+            .led_hue                = 30
+        };
 };
