@@ -13,8 +13,10 @@ String smartknob_id = String(SMARTKNOB_ID);
 
 String                discovery_topic = "homeassistant/device_automation/knob_" + smartknob_id + "/action_knob/config";
 String                action_topic    = "knob/" + smartknob_id + "/action";
+String                light_topic     = "zigbee2mqtt/Bed facing";
 Adafruit_MQTT_Publish discovery_feed  = Adafruit_MQTT_Publish(&mqtt, discovery_topic.c_str());
 Adafruit_MQTT_Publish action_feed     = Adafruit_MQTT_Publish(&mqtt, action_topic.c_str());
+Adafruit_MQTT_Subscribe light_feed    = Adafruit_MQTT_Subscribe(&mqtt, light_topic.c_str());
 
 ConnectivityTask::ConnectivityTask(const uint8_t task_core, const uint32_t stack_depth)
     : Task("Connectivity", stack_depth, 1, task_core) {
@@ -46,15 +48,58 @@ void sendMqttKnobStateDiscoveryMsg() {
     discovery_feed.publish(buffer);
 }
 
-void ConnectivityTask::run() {
-    initWiFi();
+void ConnectivityTask::receiveFromSubscriptions() {
+    Adafruit_MQTT_Subscribe *subscription;
+    while ((subscription = mqtt.readSubscription(0))) {
+        if (subscription == &light_feed) {
+            // char buf[512];
+            // snprintf(buf, sizeof(buf), "Got: %s", (char *)light_feed.lastread);
+            // log(buf);
 
-    connectToMqttBroker();
-    sendMqttKnobStateDiscoveryMsg();
+            // Format is: {"brightness":132,"color":{"x":0.4511,"y":0.4084},"color_mode":"color_temp","color_options":null,"color_temp":355,"effect":null,"identify":null,"level_config":{"on_level":"previous"},"linkquality":176,"power_on_behavior":null,"state":"ON","update":{"...":"..."},"
+            // Extract new brightness value
+
+            JsonDocument payload;
+            DeserializationError deserialization_error = deserializeJson(payload, (char *)light_feed.lastread);
+            if (deserialization_error) {
+                String deserialization_error_str = "deserializeJson() returned " + String(deserialization_error.c_str());
+                log(deserialization_error_str.c_str());
+                return;
+            }
+            // log("Checking for brightness key in payload");
+            // delay(10);
+            if (payload["brightness"].is<uint8_t>()) {
+                uint8_t brightness = payload["brightness"]; // TODO: Replace with a command/message struct, like what is implemented for the motor_task
+                // log(("Brightness: " + String(brightness)).c_str());
+                // delay(10);
+
+                for (auto listener : notification_listeners_) {
+                    xQueueSend(listener, &brightness, portMAX_DELAY);
+                    // xQueueOverwrite(listener, &brightness);
+                }
+            } else {
+                log("Brightness key not found in payload");
+            }
+        }
+    }
+}
+
+void ConnectivityTask::run() {
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+    delay(100);
+
+    mqtt.subscribe(&light_feed);
 
     while (1) {
-        // Serial.print("Checking for messages...");
-        connectToMqttBroker();
+        if (!initWiFi()) {
+            delay(100);
+            continue;
+        }
+        if (!mqtt.connected()) {
+            connectToMqttBroker();
+            sendMqttKnobStateDiscoveryMsg();
+        }
 
         Message message;
         if (xQueueReceive(queue_, &message, 0) == pdTRUE) {
@@ -67,53 +112,91 @@ void ConnectivityTask::run() {
             action_feed.publish(buffer);
 
             // Log value published
-            //   char log_msg[256];
-            //   snprintf(log_msg, sizeof(log_msg), "Published %s to MQTT", buffer);
-            //   log(log_msg);
+            char log_msg[256];
+            snprintf(log_msg, sizeof(log_msg), "Published %s to MQTT", buffer);
+            log(log_msg);
         }
 
-        delay(1);
+        receiveFromSubscriptions();
+
+        delay(100);
     }
 }
 
 void ConnectivityTask::sendMqttMessage(Message message) {
     xQueueSend(queue_, &message, portMAX_DELAY);
+    // xQueueOverwrite(queue_, &message);
 }
 
-void ConnectivityTask::initWiFi() {
-    WiFi.mode(WIFI_STA);
-    WiFi.disconnect();
-    // delay(100);
-
-    log("Starting scan");
-    last_wifi_scan_ = millis();
-    int n = WiFi.scanNetworks();
-
-    char buf[200];
-
-    if (n == 0) {
-        log("No networks found");
-    } else {
-        // Logging
-        snprintf(buf, sizeof(buf), "%d networks found", n);
-        log(buf);
-        for (int i = 0; i < n; ++i) {
-            // Print SSID and RSSI for each network found
-            snprintf(buf, sizeof(buf), "%d: %s (%d) %s", i + 1, WiFi.SSID(i).c_str(), WiFi.RSSI(i), (WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? " " : "*");
+bool ConnectivityTask::initWiFi() {
+    if (WiFi.status() == WL_CONNECTED) {
+        if (wifi_connecting_) {
+            wifi_connecting_ = false;
+            // Log Local IP
+            char buf[200];
+            log("Connected to the WiFi network");
+            snprintf(buf, sizeof(buf), "IP address: %s", WiFi.localIP().toString().c_str());
             log(buf);
+        }
+        return true;
+    }
+
+    if (wifi_connecting_) {
+        if (millis() - wifi_connecting_start_ > WIFI_CONNECT_TIMEOUT_MS) {
+            log("WiFi connection timed out");
+            wifi_connecting_ = false;
+        } else {
+            log("WiFi connecting...");
+            return false;
         }
     }
 
-    // TODO: Only connect to WiFi if it appears in the scan
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    while (WiFi.status() != WL_CONNECTED) {
-        log("Connecting to WiFi...");
-        delay(1000);
+    int n = WiFi.scanComplete();
+    if (n == WIFI_SCAN_FAILED) { // Scan hasn't been triggered
+        // log("WiFi scan not triggered");
+        if (last_wifi_scan_ == 0 || millis() - last_wifi_scan_ > WIFI_SCAN_INTERVAL_MS) {
+            log("Scanning for WiFi networks...");
+            // WiFi.scanNetworks(true, true, false, 1000U); // First parameter specifies async scan
+            // WiFi.scanNetworks(true); // First parameter specifies async scan
+            WiFi.scanNetworks(false); // Setting to false which introduces blocking
+            last_wifi_scan_ = millis();
+            return false;
+        } else {
+            // char buf[200];
+            // snprintf(buf, sizeof(buf), "Next WiFi scan in %d seconds", (WIFI_SCAN_INTERVAL_MS - (millis() - last_wifi_scan_)) / 1000);
+            // log(buf);
+            return false;
+        }
+    } else if (n == WIFI_SCAN_RUNNING) {
+        // log("WiFi scan still running");
+        return false;
     }
-    // Log Local IP
-    log("Connected to the WiFi network");
-    snprintf(buf, sizeof(buf), "IP address: %s", WiFi.localIP().toString().c_str());
+
+    if (n == 0) {
+        log("No networks found");
+    }
+
+    char buf[200];
+    bool target_network_found = false;
+    for (int i = 0; i < n; ++i) {
+        // Print SSID and RSSI for each network found
+        snprintf(buf, sizeof(buf), "%d: %s (%d) %s", i + 1, WiFi.SSID(i).c_str(), WiFi.RSSI(i), (WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? " " : "*");
+        log(buf);
+        if (WiFi.SSID(i) == WIFI_SSID) {
+            target_network_found = true;
+        }
+    }
+    WiFi.scanDelete();
+    if (!target_network_found) {
+        snprintf(buf, sizeof(buf), "%s was not found in the scan. Another scan will be attempted in %d seconds.", WIFI_SSID, WIFI_SCAN_INTERVAL_MS / 1000);
+        log(buf);
+        return false;
+    }
+
+    snprintf(buf, sizeof(buf), "Attempting connection to %s", WIFI_SSID);
     log(buf);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD); // This is blocking
+    return false;
 }
 
 void ConnectivityTask::connectToMqttBroker() {
@@ -140,6 +223,10 @@ void ConnectivityTask::connectToMqttBroker() {
             }
     }
     log("MQTT Connected!");
+}
+
+void ConnectivityTask::addListener(QueueHandle_t queue) {
+    notification_listeners_.push_back(queue);
 }
 
 void ConnectivityTask::setLogger(Logger *logger) {
