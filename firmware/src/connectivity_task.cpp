@@ -79,13 +79,13 @@ void ConnectivityTask::receiveFromSubscriptions() {
 void ConnectivityTask::run() {
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
-    delay(100);
+    delay(2000); // Initial delay 
 
     mqtt.subscribe(&light_feed);
 
     while (1) {
         if (!initWiFi()) {
-            delay(100);
+            delay(10);
             continue;
         }
         if (!mqtt.connected()) {
@@ -121,13 +121,13 @@ void ConnectivityTask::sendMqttMessage(Message message) {
 }
 
 bool ConnectivityTask::initWiFi() {
-    if (WiFi.status() == WL_CONNECTED) {
-        if (wifi_connecting_) {
-            wifi_connecting_ = false;
-            // Log Local IP
-            char buf[200];
-            log("Connected to the WiFi network");
-            snprintf(buf, sizeof(buf), "IP address: %s", WiFi.localIP().toString().c_str());
+    char buf[200];
+    static wl_status_t wifi_previous_status;
+    static wl_status_t wifi_status;
+    wifi_previous_status = wifi_status;
+    wifi_status = WiFi.status();
+    if (wifi_status == WL_CONNECTED) {
+        if (wifi_previous_status != WL_CONNECTED) {
             log(buf);
         }
         return true;
@@ -147,10 +147,8 @@ bool ConnectivityTask::initWiFi() {
     if (n == WIFI_SCAN_FAILED) { // Scan hasn't been triggered
         // log("WiFi scan not triggered");
         if (last_wifi_scan_ == 0 || millis() - last_wifi_scan_ > WIFI_SCAN_INTERVAL_MS) {
-            log("Scanning for WiFi networks...");
-            // WiFi.scanNetworks(true, true, false, 1000U); // First parameter specifies async scan
-            // WiFi.scanNetworks(true); // First parameter specifies async scan
-            WiFi.scanNetworks(false); // Setting to false which introduces blocking
+            WiFi.scanNetworks(true); // First parameter specifies async scan
+            // WiFi.scanNetworks(false); // Setting to false which introduces blocking
             last_wifi_scan_ = millis();
             return false;
         } else {
@@ -163,10 +161,9 @@ bool ConnectivityTask::initWiFi() {
         // log("WiFi scan still running");
         return false;
     }
-
-    if (n == 0) {
-        log("No networks found");
-    }
+    // if (n == 0) { // Should be handled by the target_network_found check
+    //     log("No networks found");
+    // }
 
     char buf[200];
     bool target_network_found = false;
