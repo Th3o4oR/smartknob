@@ -15,11 +15,11 @@ void LightsPage::handleState(PB_SmartKnobState state) {
     // Prevent updating the brightness value from MQTT messages within a certain time after the last publish
     uint8_t brightness;
     if (xQueueReceive(brightness_queue_, &brightness, 0) == pdTRUE) {
-        log(("LIGHTS: Received brightness from MQTT (" + String(brightness) + ")" + " (position: " + String(brightnessToPosition(brightness, config_)) + ")").c_str());
+        LOG_INFO("LIGHTS: Received brightness from MQTT (%d) (position: %d)", brightness, brightnessToPosition(brightness, config_));
         if (millis() - last_publish_time_ < BRIGHTNESS_UPDATE_COOLDOWN_MS) { // TODO: This shouldn't use the last_publish_time_, but rather the time since the state was last updated (knob rotated)
-            log("Ignoring brightness update due to cooldown");
+            LOG_WARN("LIGHTS: Ignoring brightness update due to cooldown");
         } else {
-            log("Updating position to match received brightness");
+            LOG_INFO("LIGHTS: Updating position to match received brightness");
             PB_SmartKnobConfig *page_config = getPageConfig();
             int32_t position = brightnessToPosition(brightness, *page_config);
             page_config->initial_position = position;
@@ -31,7 +31,7 @@ void LightsPage::handleState(PB_SmartKnobState state) {
 
     if (last_published_position_ != state.current_position) {
         if (millis() - last_publish_time_ > MQTT_PUBLISH_FREQUENCY_MS) {
-            log(("LIGHTS: Publishing position to MQTT: " + String(state.current_position) + " (brightness: " + String(positionToBrightness(state.current_position, config_)) + ")").c_str());
+            LOG_INFO("LIGHTS: Publishing position to MQTT: %d (brightness: %d)", state.current_position, positionToBrightness(state.current_position, config_));
             Message msg = {
                 .trigger_name = "lights",
                 .trigger_value = positionToBrightness(state.current_position, config_)
@@ -62,15 +62,5 @@ void LightsPage::handleUserInput(input_t input, int input_data, PB_SmartKnobStat
     }    
     default:
         break;
-    }
-}
-
-void LightsPage::setLogger(Logger *logger) {
-    logger_ = logger;
-}
-
-void LightsPage::log(const char *msg) {
-    if (logger_ != nullptr) {
-        logger_->log(msg);
     }
 }

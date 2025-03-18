@@ -33,7 +33,7 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
 
         SemaphoreHandle_t * i2c_mutex;
 
-        void log(const char* msg) override;
+        void log(const std::string& msg) override;
         void setConfiguration(Configuration* configuration);
         uint8_t incrementPositionNonce();
 

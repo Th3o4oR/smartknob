@@ -10,7 +10,7 @@ void SerialProtocolPlaintext::handleState(const PB_SmartKnobState& state) {
         || (latest_state_.config.max_position != state.config.max_position);
     latest_state_ = state;
 
-    if (substantial_change) {
+    if (substantial_change) { // TODO: Move to interface task
         stream_.printf("STATE: %d [%d, %d]  (detent strength: %0.2f, width: %0.0f deg, endstop strength: %0.2f)\n", 
             state.current_position,
             state.config.min_position,
@@ -21,9 +21,9 @@ void SerialProtocolPlaintext::handleState(const PB_SmartKnobState& state) {
     }
 }
 
-void SerialProtocolPlaintext::log(const char* msg) {
-    stream_.print("LOG: ");
-    stream_.println(msg);
+void SerialProtocolPlaintext::log(const std::string& msg) {
+    // stream_.print("LOG: ");
+    stream_.println(msg.c_str());
 }
 
 void SerialProtocolPlaintext::loop() {
@@ -52,5 +52,5 @@ void SerialProtocolPlaintext::loop() {
 void SerialProtocolPlaintext::init(DemoConfigChangeCallback demo_config_change_callback, StrainCalibrationCallback strain_calibration_callback) {
     demo_config_change_callback_ = demo_config_change_callback;
     strain_calibration_callback_ = strain_calibration_callback;
-    stream_.println("SmartKnob starting!\n\nSerial mode: plaintext\nPress 'C' at any time to calibrate motor/sensor.\nPress 'S' at any time to calibrate strain sensors.\nPress <Space> to change haptic modes.");
+    stream_.println("SmartKnob starting!\n\nSerial mode: plaintext\nPress 'C' at any time to calibrate motor/sensor.\nPress 'S' at any time to calibrate strain sensors.\nPress <Space> to change haptic modes.\n");
 }

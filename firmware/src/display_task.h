@@ -28,7 +28,6 @@ class DisplayTask : public Task<DisplayTask> {
         void publish(userInput_t user_input);
         void flushDisplay(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p);
         void setBrightness(uint16_t brightness);
-        void setLogger(Logger* logger);
         void setI2CMutex(SemaphoreHandle_t * mutex);
         static void button_event_cb(lv_event_t * event);
 
@@ -45,8 +44,6 @@ class DisplayTask : public Task<DisplayTask> {
         PB_SmartKnobState latest_state_;
         SemaphoreHandle_t mutex_;
         uint16_t brightness_;
-        Logger* logger_;
-        void log(const char* msg);
         void clear_screen();
 };
 

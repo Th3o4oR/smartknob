@@ -211,6 +211,13 @@ void DisplayTask::run() {
 
         lv_task_handler();
 
+        // static uint32_t last_brightness_report;
+        // char buf_[100];
+        // if (millis() - last_brightness_report > 500) {
+        //     snprintf(buf_, sizeof(buf_), "brightness_: %d", brightness_);
+        //     log(buf_);
+        //     last_brightness_report = millis();
+        // }
         {
           SemaphoreGuard lock(mutex_);
           ledcWrite(LEDC_CHANNEL_LCD_BACKLIGHT, brightness_);
@@ -226,16 +233,6 @@ QueueHandle_t DisplayTask::getKnobStateQueue() {
 void DisplayTask::setBrightness(uint16_t brightness) {
   SemaphoreGuard lock(mutex_);
   brightness_ = brightness >> (16 - SK_BACKLIGHT_BIT_DEPTH);
-}
-
-void DisplayTask::setLogger(Logger* logger) {
-    logger_ = logger;
-}
-
-void DisplayTask::log(const char* msg) {
-    if (logger_ != nullptr) {
-        logger_->log(msg);
-    }
 }
 
 void DisplayTask::setListener(QueueHandle_t queue) {

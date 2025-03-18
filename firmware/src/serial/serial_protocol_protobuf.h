@@ -13,7 +13,7 @@ class SerialProtocolProtobuf : public SerialProtocol {
     public:
         SerialProtocolProtobuf(Stream& stream, ConfigCallback config_callback);
         ~SerialProtocolProtobuf(){};
-        void log(const char* msg) override;
+        void log(const std::string& msg) override;
         void loop() override;
         void handleState(const PB_SmartKnobState& state) override;
     

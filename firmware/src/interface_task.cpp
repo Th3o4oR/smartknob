@@ -101,7 +101,7 @@ void InterfaceTask::run() {
             veml.setGain(VEML7700_GAIN_2);
             veml.setIntegrationTime(VEML7700_IT_400MS);
         } else {
-            log("ALS sensor not found!");
+            LOG_WARN("ALS sensor not found!");
         }
     #endif
 
@@ -124,25 +124,23 @@ void InterfaceTask::run() {
                 return;
             }
             if (strain_calibration_step_ == 0) {
-                log("Strain calibration step 1: Don't touch the knob, then press 'S' again");
+                LOG_INFO("Strain calibration step 0: Don't touch the knob, then press 'S' again");
                 strain_calibration_step_ = 1;
             } else if (strain_calibration_step_ == 1) {
                 configuration_value_.strain.idle_value = strain_reading_;
-                snprintf(buf_, sizeof(buf_), "  idle_value=%d", configuration_value_.strain.idle_value);
-                log(buf_);
-                log("Strain calibration step 2: Push and hold down the knob with medium pressure, and press 'S' again");
+                LOG_INFO("  idle_value=%d", configuration_value_.strain.idle_value);
+                LOG_INFO("Strain calibration step 1: Push and hold down the knob with medium pressure, and press 'S' again");
                 strain_calibration_step_ = 2;
             } else if (strain_calibration_step_ == 2) {
                 configuration_value_.strain.press_delta = strain_reading_ - configuration_value_.strain.idle_value;
                 configuration_value_.has_strain = true;
-                snprintf(buf_, sizeof(buf_), "  press_delta=%d", configuration_value_.strain.press_delta);
-                log(buf_);
-                log("Strain calibration complete! Saving...");
+                LOG_INFO("  press_delta=%d", configuration_value_.strain.press_delta);
+                LOG_INFO("Strain calibration complete! Saving...");
                 strain_calibration_step_ = 0;
                 if (configuration_->setStrainCalibrationAndSave(configuration_value_.strain)) {
-                    log("  Saved!");
+                    LOG_SUCCESS("  Saved!");
                 } else {
-                    log("  FAILED to save config!!!");
+                    LOG_ERROR("  FAILED to save config!");
                 }
             }
         }
@@ -161,7 +159,7 @@ void InterfaceTask::run() {
                 current_protocol_ = &proto_protocol_;
                 break;
             default:
-                log("Unknown protocol requested");
+                LOG_ERROR("Unknown protocol requested");
                 break;
         }
     };
@@ -188,16 +186,14 @@ void InterfaceTask::run() {
             // If the page has been visited previously, set the initial position to the previous position on that page
             PB_SmartKnobConfig *page_config = current_page->getPageConfig(); // TODO: This might have to be a pointer
             if (current_page->getVisited()) {
-                // log("Updating position to previous position on page");
-                page_config->initial_position = current_page->getPreviousPosition();
+                page_config->initial_position = current_page->getPreviousPosition(); // TODO: This can be replaced with the current position (state)
             } else {
-                // log("Marking page as visited");
                 current_page->setVisited(true);
                 current_page->setPreviousPosition(page_config->initial_position);
             }
             applyConfig(*page_config, false);
         } else {
-            log("Unknown page requested");
+            LOG_ERROR("Unknown page requested");
         }
     };
 
@@ -228,9 +224,7 @@ void InterfaceTask::run() {
                 current_page->setPreviousPosition(latest_state_.current_position);
                 current_page->handleState(latest_state_);
             } else {
-                char buf[128];
-                snprintf(buf, sizeof(buf), "Discarding outdated state message (expected nonce %d, got %d)", position_nonce_, latest_state_.config.position_nonce);
-                log(buf);
+                LOG_WARN("Discarding outdated state message (expected nonce %d, got %d)", position_nonce_, new_state.config.position_nonce);
             }
         }
 
@@ -274,7 +268,7 @@ void InterfaceTask::setUserInput(userInput_t user_input, bool playHapticts) {
     }
 }
 
-void InterfaceTask::log(const char* msg) {
+void InterfaceTask::log(const std::string& msg) {
     // Allocate a string for the duration it's in the queue; it is free'd by the queue consumer
     std::string* msg_str = new std::string(msg);
 
@@ -346,7 +340,7 @@ void InterfaceTask::updateHardware() {
                 }
             }
         } else {
-            log("HX711 not found.");
+            LOG_WARN("HX711 not found (not ready?)");
 
             #if SK_LEDS
                 for (uint8_t i = 0; i < NUM_LEDS; i++) {

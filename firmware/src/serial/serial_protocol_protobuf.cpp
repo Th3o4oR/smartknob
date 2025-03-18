@@ -42,11 +42,11 @@ void SerialProtocolProtobuf::ack(uint32_t nonce) {
     sendPbTxBuffer();
 }
 
-void SerialProtocolProtobuf::log(const char* msg) {
+void SerialProtocolProtobuf::log(const std::string& msg) {
     pb_tx_buffer_ = {};
     pb_tx_buffer_.which_payload = PB_FromSmartKnob_log_tag;
 
-    strlcpy(pb_tx_buffer_.payload.log.msg, msg, sizeof(pb_tx_buffer_.payload.log.msg));
+    strlcpy(pb_tx_buffer_.payload.log.msg, msg.c_str(), sizeof(pb_tx_buffer_.payload.log.msg));
 
     sendPbTxBuffer();
 }

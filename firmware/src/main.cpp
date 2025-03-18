@@ -42,21 +42,18 @@ void setup() {
     // Connect display to motor_task's knob state feed
     motor_task.addListener(display_task.getKnobStateQueue());
     #endif
-
-    interface_task.begin();
-
+    
     config.setLogger(&interface_task);
-    config.loadFromDisk();
-
-    interface_task.setConfiguration(&config);
-
     motor_task.setLogger(&interface_task);
-    motor_task.begin();
-
     connectivity_task.setLogger(&interface_task);
+    
+    config.loadFromDisk();
+    interface_task.begin();
+    interface_task.setConfiguration(&config);
+    motor_task.begin();
     connectivity_task.begin();
-
-    // Free up the Arduino loop task
+    
+    // Free up the main loop task (prevents `loop` from running)
     vTaskDelete(NULL);
 }
 

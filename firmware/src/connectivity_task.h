@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 #include "task.h"
-#include "logger.h"
+// #include "logger.h"
 #include <vector>
 
 static constexpr uint32_t WIFI_SCAN_INTERVAL_MS = 60 * 1000;
@@ -21,7 +21,6 @@ class ConnectivityTask : public Task<ConnectivityTask> {
         ~ConnectivityTask();
 
         void addListener(QueueHandle_t queue);
-        void setLogger(Logger *logger);
         void sendMqttMessage(Message message);
         void receiveFromSubscriptions();
 
@@ -29,18 +28,12 @@ class ConnectivityTask : public Task<ConnectivityTask> {
         void run();
 
     private:
-        // bool wifi_connected_ = false;
-        // bool mqtt_connected_ = false;
         uint32_t last_wifi_scan_ = 0;
-        uint32_t wifi_connecting_start_ = 0;
-        bool wifi_connecting_ = false;
         
         std::vector<QueueHandle_t> notification_listeners_;
 
         QueueHandle_t queue_;
-        Logger       *logger_;
 
         bool initWiFi();
         void connectToMqttBroker();
-        void log(const char *msg);
 };

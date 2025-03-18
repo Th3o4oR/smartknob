@@ -15,7 +15,8 @@
 */
 #pragma once
 
-#include<Arduino.h>
+#include <Arduino.h>
+#include "logger.h"
 
 // Static polymorphic abstract base class for a FreeRTOS task using CRTP pattern. Concrete implementations
 // should implement a run() method.
@@ -40,6 +41,15 @@ class Task {
             assert("Failed to create task" && result == pdPASS);
         }
 
+        void setLogger(Logger* logger) {
+            logger_ = logger;
+        }
+        void log(const std::string& msg) {
+            if (logger_ != nullptr) {
+                logger_->log(msg);
+            }
+        }
+
     private:
         static void taskFunction(void* params) {
             T* t = static_cast<T*>(params);
@@ -51,4 +61,6 @@ class Task {
         UBaseType_t priority;
         TaskHandle_t taskHandle;
         const BaseType_t coreId;
+
+        Logger *logger_;
 };

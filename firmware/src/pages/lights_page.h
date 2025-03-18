@@ -1,4 +1,3 @@
-
 #include "page.h"
 #include "views/view.h"
 #include "../motor_task.h"
@@ -29,16 +28,12 @@ class LightsPage : public Page {
         void                handleUserInput(input_t input, int input_data, PB_SmartKnobState state) override;
 
         QueueHandle_t getBrightnessQueue() { return brightness_queue_; }
-        void setLogger(Logger *logger);
 
         void setConfigChangeCallback(ConfigChangeCallback callback) {
             config_change_callback_ = callback;
         }
 
     private:
-        Logger *logger_;
-        void log(const char *msg);
-
         ConnectivityTask &connectivity_task_;
 
         ConfigChangeCallback config_change_callback_;
