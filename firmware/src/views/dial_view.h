@@ -16,6 +16,8 @@ class DialView: public View {
         void updateView(PB_SmartKnobState state) override;
 
     private:
+        PB_SmartKnobState previous_state_;
+
         DisplayTask* display_task_;
         lv_obj_t * screen_;
         lv_obj_t * label_cur_pos;
