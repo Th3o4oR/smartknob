@@ -12,13 +12,21 @@
 #include "motors/motor_config.h"
 #include "util.h"
 
+// Empirically determined values for the knob with red wires
+/*
+    (absolute) maximum shaft velocity while idle (not exactly at detent center): 0.33
+    (absolute) maximum shaft velocity while at detent center: 0.29
+    Angle difference where motor is unable to move: 0.12 (set to 0.15 for safety)
+        0.12 rad = 6.87 degrees => Let's accept 8 degrees (maybe even 10?)
+*/
+
 static const float DEAD_ZONE_DETENT_PERCENT = 0.2;
 static const float DEAD_ZONE_RAD = 1 * _PI / 180;
 
 static const float IDLE_VELOCITY_EWMA_ALPHA = 0.001;
 static const float IDLE_VELOCITY_RAD_PER_SEC = 0.05;
 static const uint32_t IDLE_CORRECTION_DELAY_MILLIS = 500;
-static const float IDLE_CORRECTION_MAX_ANGLE_RAD = 5 * PI / 180;
+static const float IDLE_CORRECTION_MAX_ANGLE_RAD = 8 * PI / 180;
 static const float IDLE_CORRECTION_RATE_ALPHA = 0.0005;
 
 
@@ -226,26 +234,58 @@ void MotorTask::run() {
             current_detent_center = motor.shaft_angle * IDLE_CORRECTION_RATE_ALPHA + current_detent_center * (1 - IDLE_CORRECTION_RATE_ALPHA);
         }
 
+        // // Log current motor state
+        // char motor_buf[256];
+        // static float global_maximum_absolute_velocity = 0;
+        // static float local_maximum_absolute_velocity = 0;
+        // static uint32_t shaft_velocity_count = 0;
+        // shaft_velocity_count++;
+        // if (fabsf(motor.shaft_velocity) > global_maximum_absolute_velocity) {
+        //     global_maximum_absolute_velocity = fabs(motor.shaft_velocity);
+        // }
+        // if (fabs(motor.shaft_velocity) > local_maximum_absolute_velocity) {
+        //     local_maximum_absolute_velocity = fabs(motor.shaft_velocity);
+        // }
+        // static uint32_t last_motor_shaft_angle_log = 0;
+        // if (millis() - last_motor_shaft_angle_log > 250) {
+        //     snprintf(
+        //         motor_buf,
+        //         sizeof(motor_buf),
+        //         "angle:% 5.2f"
+        //         ", max_local_velocity:% 5.2f"
+        //         ", ewma_velocity:% 5.2f"
+        //         ", current_detent_center:% 5.2f"
+        //         ,motor.shaft_angle
+        //         ,local_maximum_absolute_velocity
+        //         ,idle_check_velocity_ewma
+        //         ,current_detent_center
+        //     );
+        //     log(motor_buf);
+        //     local_maximum_absolute_velocity = fabs(motor.shaft_velocity);
+        //     shaft_velocity_count = 0;
+        //     last_motor_shaft_angle_log = millis();
+        // }
+
         // Check where we are relative to the current nearest detent; update our position if we've moved far enough to snap to another detent
-        float angle_to_detent_center = motor.shaft_angle - current_detent_center;
+        float angle_to_detent_center = motor.shaft_angle - current_detent_center;  // Positive means the physical sensor is to the "right" of the detent center
         #if SK_INVERT_ROTATION
             angle_to_detent_center = -motor.shaft_angle - current_detent_center;
         #endif
 
         float snap_point_radians = config.position_width_radians * config.snap_point;
         float bias_radians = config.position_width_radians * config.snap_point_bias;
-        float snap_point_radians_decrease = snap_point_radians + (current_position <= 0 ? bias_radians : -bias_radians);
-        float snap_point_radians_increase = -snap_point_radians + (current_position >= 0 ? -bias_radians : bias_radians); 
+        float snap_point_radians_decrease = -snap_point_radians + (current_position <= 0 ? -bias_radians : bias_radians);
+        float snap_point_radians_increase = snap_point_radians + (current_position >= 0 ? bias_radians : -bias_radians); 
 
         int32_t num_positions = config.max_position - config.min_position + 1;
-        if (angle_to_detent_center > snap_point_radians_decrease && (num_positions <= 0 || current_position > config.min_position || config.infinite_scroll)) {
+        if (angle_to_detent_center > snap_point_radians_increase && (num_positions <= 0 || current_position < config.max_position || config.infinite_scroll)) {
             current_detent_center += config.position_width_radians;
             angle_to_detent_center -= config.position_width_radians;
-            current_position--;
-        } else if (angle_to_detent_center < snap_point_radians_increase && (num_positions <= 0 || current_position < config.max_position || config.infinite_scroll)) {
+            current_position++;
+        } else if (angle_to_detent_center < snap_point_radians_decrease && (num_positions <= 0 || current_position > config.min_position || config.infinite_scroll)) {
             current_detent_center -= config.position_width_radians;
             angle_to_detent_center += config.position_width_radians;
-            current_position++;
+            current_position--;
         }
 
         if (config.infinite_scroll) {
@@ -256,14 +296,14 @@ void MotorTask::run() {
             }
         }
 
-        latest_sub_position_unit = -angle_to_detent_center / config.position_width_radians;
+        latest_sub_position_unit = angle_to_detent_center / config.position_width_radians;
 
         float dead_zone_adjustment = CLAMP(
             angle_to_detent_center,
             fmaxf(-config.position_width_radians*DEAD_ZONE_DETENT_PERCENT, -DEAD_ZONE_RAD),
             fminf(config.position_width_radians*DEAD_ZONE_DETENT_PERCENT, DEAD_ZONE_RAD));
 
-        bool out_of_bounds = num_positions > 0 && !config.infinite_scroll && ((angle_to_detent_center > 0 && current_position == config.min_position) || (angle_to_detent_center < 0 && current_position == config.max_position));
+        bool out_of_bounds = num_positions > 0 && !config.infinite_scroll && ((angle_to_detent_center > 0 && current_position == config.max_position) || (angle_to_detent_center < 0 && current_position == config.min_position));
         motor.PID_velocity.limit = 10; //out_of_bounds ? 10 : 3;
         motor.PID_velocity.P = out_of_bounds ? config.endstop_strength_unit * 4 : config.detent_strength_unit * 4;
 
