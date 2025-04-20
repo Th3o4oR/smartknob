@@ -54,18 +54,33 @@ void ConnectivityTask::receiveFromSubscriptions() {
         if (subscription == &light_feed) {
             JsonDocument payload;
             DeserializationError deserialization_error = deserializeJson(payload, (char *)light_feed.lastread);
+            LOG_DEBUG("Received payload: %s", (char *)light_feed.lastread);
+            
             if (deserialization_error) {
                 LOG_ERROR("deserializeJson() returned %s", deserialization_error.c_str());
                 return;
             }
-            if (payload["brightness"].is<uint8_t>()) {
-                uint8_t brightness = payload["brightness"]; // TODO: Replace with a command/message struct, like what is implemented for the motor_task
-                for (auto listener : notification_listeners_) {
-                    xQueueSend(listener, &brightness, portMAX_DELAY);
-                    // xQueueOverwrite(listener, &brightness);
-                }
-            } else {
+
+            bool state_present = payload["state"].is<std::string>();
+            bool brightness_present = payload["brightness"].is<uint8_t>();
+            if (!state_present) {
+                LOG_ERROR("State key not found in payload");
+            }
+            if (!brightness_present) {
                 LOG_ERROR("Brightness key not found in payload");
+            }
+
+            bool lights_turned_off = (state_present && payload["state"] == "OFF");
+            if (lights_turned_off) {
+                bool state = false;
+                for (auto listener : state_listeners_) {
+                    xQueueSend(listener, &state, portMAX_DELAY);
+                }
+            } else if (brightness_present) {
+                uint8_t brightness = payload["brightness"]; // TODO: Replace with a command/message struct, like what is implemented for the motor_task
+                for (auto listener : brightness_listeners_) {
+                    xQueueSend(listener, &brightness, portMAX_DELAY);
+                }
             }
         }
     }
@@ -97,11 +112,6 @@ void ConnectivityTask::run() {
             serializeJson(payload, buffer);
 
             action_feed.publish(buffer);
-
-            // Log value published
-            // char log_msg[256];
-            // snprintf(log_msg, sizeof(log_msg), "Published %s to MQTT", buffer);
-            // log(log_msg);
             LOG_INFO("Published %s to MQTT", buffer);
         }
 
@@ -235,6 +245,9 @@ void ConnectivityTask::connectToMqttBroker() {
     LOG_SUCCESS("MQTT Connected!");
 }
 
-void ConnectivityTask::addListener(QueueHandle_t queue) {
-    notification_listeners_.push_back(queue);
+void ConnectivityTask::addBrightnessListener(QueueHandle_t queue) {
+    brightness_listeners_.push_back(queue);
+}
+void ConnectivityTask::addStateListener(QueueHandle_t queue) {
+    state_listeners_.push_back(queue);
 }

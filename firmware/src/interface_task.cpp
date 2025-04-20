@@ -106,7 +106,8 @@ void InterfaceTask::run() {
     #endif
 
     motor_task_.addListener(knob_state_queue_);
-    connectivity_task_.addListener(lights_page_.getBrightnessQueue());
+    connectivity_task_.addBrightnessListener(lights_page_.getBrightnessQueue());
+    connectivity_task_.addStateListener(lights_page_.getStateQueue());
     display_task_ -> setListener(user_input_queue_);
 
     plaintext_protocol_.init(

@@ -20,7 +20,8 @@ class ConnectivityTask : public Task<ConnectivityTask> {
         ConnectivityTask(const uint8_t task_core, const uint32_t stack_depth);
         ~ConnectivityTask();
 
-        void addListener(QueueHandle_t queue);
+        void addBrightnessListener(QueueHandle_t queue);
+        void addStateListener(QueueHandle_t queue);
         void sendMqttMessage(Message message);
         void receiveFromSubscriptions();
 
@@ -30,7 +31,8 @@ class ConnectivityTask : public Task<ConnectivityTask> {
     private:
         uint32_t last_wifi_scan_ = 0;
         
-        std::vector<QueueHandle_t> notification_listeners_;
+        std::vector<QueueHandle_t> brightness_listeners_;
+        std::vector<QueueHandle_t> state_listeners_;
 
         QueueHandle_t queue_;
 

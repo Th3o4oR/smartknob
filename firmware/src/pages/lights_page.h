@@ -19,6 +19,7 @@ class LightsPage : public Page {
             : Page()
             , connectivity_task_(connectivity_task)
             , brightness_queue_(xQueueCreate(1, sizeof(uint8_t)))
+            , state_queue_(xQueueCreate(1, sizeof(bool)))
             {}
 
         ~LightsPage() {}
@@ -28,6 +29,7 @@ class LightsPage : public Page {
         void                handleUserInput(input_t input, int input_data, PB_SmartKnobState state) override;
 
         QueueHandle_t getBrightnessQueue() { return brightness_queue_; }
+        QueueHandle_t getStateQueue() { return state_queue_; }
 
         void setConfigChangeCallback(ConfigChangeCallback callback) {
             config_change_callback_ = callback;
@@ -37,7 +39,9 @@ class LightsPage : public Page {
         ConnectivityTask &connectivity_task_;
 
         ConfigChangeCallback config_change_callback_;
+
         QueueHandle_t brightness_queue_;
+        QueueHandle_t state_queue_;
 
         uint32_t last_publish_time_;
         uint32_t last_published_position_;
