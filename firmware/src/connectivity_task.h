@@ -8,6 +8,8 @@
 static constexpr uint32_t WIFI_SCAN_INTERVAL_MS = 60 * 1000;
 static constexpr uint32_t WIFI_CONNECT_TIMEOUT_MS = 5 * 1000;
 
+static constexpr uint32_t MQTT_CONNECTION_INTERVAL_MS = 5 * 1000;
+
 struct Message {
     String trigger_name;
     int trigger_value;
@@ -30,12 +32,13 @@ class ConnectivityTask : public Task<ConnectivityTask> {
 
     private:
         uint32_t last_wifi_scan_ = 0;
+        uint32_t last_mqtt_connection_attempt_ = 0;
         
         std::vector<QueueHandle_t> brightness_listeners_;
         std::vector<QueueHandle_t> state_listeners_;
 
-        QueueHandle_t queue_;
+        QueueHandle_t transmit_queue_;
 
         bool initWiFi();
-        void connectToMqttBroker();
+        bool connectToMqttBroker();
 };

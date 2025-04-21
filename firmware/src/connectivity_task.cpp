@@ -20,8 +20,8 @@ Adafruit_MQTT_Subscribe light_feed    = Adafruit_MQTT_Subscribe(&mqtt, light_top
 
 ConnectivityTask::ConnectivityTask(const uint8_t task_core, const uint32_t stack_depth)
     : Task("Connectivity", stack_depth, 1, task_core) {
-    queue_ = xQueueCreate(5, sizeof(Message));
-    assert(queue_ != NULL);
+    transmit_queue_ = xQueueCreate(1, sizeof(Message));
+    assert(transmit_queue_ != NULL);
 }
 
 ConnectivityTask::~ConnectivityTask() {}
@@ -38,7 +38,7 @@ void sendMqttKnobStateDiscoveryMsg() {
     device["name"]             = "SmartKnob";
     device["model"]            = "Model 1";
     device["sw_version"]       = "0.0.1";
-    device["manufacturer"]     = "lgc00";
+    device["manufacturer"]     = SMARTKNOB_MANUFACTURER;
     JsonArray identifiers      = device["identifiers"].to<JsonArray>();
     identifiers.add(smartknob_id);
 
@@ -89,22 +89,31 @@ void ConnectivityTask::receiveFromSubscriptions() {
 void ConnectivityTask::run() {
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
-    delay(2000); // Initial delay 
 
-    mqtt.subscribe(&light_feed);
+    mqtt.subscribe(&light_feed); // Subscriptions must be added before connecting to the broker
 
     while (1) {
+        // When either WiFi or MQTT are not connected and the queue is full, any task attempting
+        // to send messages will be blocked and won't run until space is available.
+        // In order to avoid this, we need to clear the queue before attempting to connect to WiFi or MQTT.
+        // The last message will be kept in the queue.
+        // while (uxQueueMessagesWaiting(transmit_queue_) > 1) {
+        //     Message message;
+        //     xQueueReceive(transmit_queue_, &message, 0);
+        // }
+        
         if (!initWiFi()) {
             delay(10);
             continue;
         }
-        if (!mqtt.connected()) {
-            connectToMqttBroker();
-            sendMqttKnobStateDiscoveryMsg();
+
+        if (!connectToMqttBroker()) {
+            delay(10);
+            continue;
         }
 
         Message message;
-        if (xQueueReceive(queue_, &message, 0) == pdTRUE) {
+        if (xQueueReceive(transmit_queue_, &message, 0) == pdTRUE) {
             JsonDocument payload;
             char         buffer[256];
             payload["trigger_name"]  = message.trigger_name;
@@ -121,13 +130,18 @@ void ConnectivityTask::run() {
     }
 }
 
+/**
+ * @brief Send a message to the MQTT broker.
+ * 
+ * This function overwrites the queue with the new message.
+ * 
+ * @param message The message to send.
+ */
 void ConnectivityTask::sendMqttMessage(Message message) {
-    xQueueSend(queue_, &message, portMAX_DELAY);
-    // xQueueOverwrite(queue_, &message);
+    xQueueOverwrite(transmit_queue_, &message);
 }
 
 bool ConnectivityTask::initWiFi() {
-    char buf[200];
     static wl_status_t wifi_previous_status;
     static wl_status_t wifi_status;
     wifi_previous_status = wifi_status;
@@ -219,30 +233,27 @@ bool ConnectivityTask::initWiFi() {
     return false;
 }
 
-void ConnectivityTask::connectToMqttBroker() {
-    int8_t ret;
-
+bool ConnectivityTask::connectToMqttBroker() {
     // Stop if already connected.
     if (mqtt.connected()) {
-        return;
+        return true;
     }
 
-    LOG_INFO("Connecting to MQTT... ");
+    if (last_mqtt_connection_attempt_ == 0 || millis() - last_mqtt_connection_attempt_ > MQTT_CONNECTION_INTERVAL_MS) {
+        last_mqtt_connection_attempt_ = millis();
+        LOG_INFO("Connecting to MQTT... ");
+        uint8_t ret = mqtt.connect();
+        if (ret != 0) {
+            LOG_ERROR("MQTT connection failed: %s", mqtt.connectErrorString(ret));
+            return false;
+        }
 
-    uint8_t retries = 3;
-    while ((ret = mqtt.connect()) != 0) { // connect will return 0 for connected
-        log(String(mqtt.connectErrorString(ret)).c_str());
-        log("Retrying MQTT connection in 5 seconds...");
-        mqtt.disconnect();
-        delay(5000);
-        retries--;
-        if (retries == 0) {
-            // basically die and wait for WDT to reset me
-            while (1)
-                ;
-            }
+        LOG_SUCCESS("MQTT Connected!");
+        sendMqttKnobStateDiscoveryMsg();
+        return true;
     }
-    LOG_SUCCESS("MQTT Connected!");
+
+    return false;
 }
 
 void ConnectivityTask::addBrightnessListener(QueueHandle_t queue) {
