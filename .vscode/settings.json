@@ -7,4 +7,14 @@
         "cstddef": "cpp",
         "limits": "cpp"
     },
+
+    "[cpp][c]": {
+        "editor.detectIndentation": false,
+        "editor.defaultFormatter": "ms-vscode.cpptools",
+        "editor.inlineSuggest.enabled": true,
+        "editor.indentSize": "tabSize",
+        "editor.tabSize": 4,
+        "diffEditor.ignoreTrimWhitespace": false,
+    },
+    "C_Cpp.clang_format_style": "file:/Users/theodor/Documents/Projects/smartknob_home_assistant/.clang-format",
 }
