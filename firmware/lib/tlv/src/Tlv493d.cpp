@@ -71,7 +71,7 @@ void Tlv493d::begin(TwoWire &bus, Tlv493d_Address_t slaveAddress, bool reset)
 	pinMode(LED2, OUTPUT);
 	digitalWrite(LED2, HIGH);
 	delay(50);
-	#endif
+	#endif // TLV493D_A1B6_KIT2GO
 	
 	initInterface(&mInterface, &bus, slaveAddress);
 	delay(TLV493D_STARTUPDELAY);
@@ -195,7 +195,7 @@ Tlv493d_Error_t Tlv493d::updateData(void)
 		{
 			ret = TLV493D_BUS_ERROR;
 		}
-#endif
+#endif // TLV493D_ACCELERATE_READOUT
 		if (ret == TLV493D_NO_ERROR)
 		{
 			// construct results from registers

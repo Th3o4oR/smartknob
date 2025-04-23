@@ -131,4 +131,4 @@ const AccessMode_t accModes[] = {
 
 }
 
-#endif
+#endif // TLV493D_CONF_H_INCLUDED

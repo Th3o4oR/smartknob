@@ -23,7 +23,7 @@ class SettingsPage: public Page {
             int maxPositions = 2;
         #else
             int maxPositions = 1;
-        #endif
+        #endif // SK_STRAIN
 
         PB_ViewConfig view_config = {
             VIEW_LIST_MENU,

@@ -51,4 +51,4 @@ class DisplayTask : public Task<DisplayTask> {
 
 class DisplayTask {};
 
-#endif
+#endif // SK_DISPLAY

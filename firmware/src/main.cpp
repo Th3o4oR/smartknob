@@ -28,7 +28,7 @@ static DisplayTask display_task(0, DISPLAY_TASK_STACK_DEPTH);
 static DisplayTask* display_task_p = &display_task;
 #else
 static DisplayTask* display_task_p = nullptr;
-#endif
+#endif // SK_DISPLAY
 static MotorTask motor_task(1, MOTOR_TASK_STACK_DEPTH, config);
 static ConnectivityTask connectivity_task(0, CONNECTIVITY_TASK_STACK_DEPTH);
 
@@ -41,7 +41,7 @@ void setup() {
 
     // Connect display to motor_task's knob state feed
     motor_task.addListener(display_task.getKnobStateQueue());
-    #endif
+    #endif // SK_DISPLAY
     
     config.setLogger(&interface_task);
     motor_task.setLogger(&interface_task);

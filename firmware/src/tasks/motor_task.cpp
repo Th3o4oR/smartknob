@@ -7,7 +7,7 @@
 #include "tlv_sensor.h"
 #elif SENSOR_MAQ430
 #include "maq430_sensor.h"
-#endif
+#endif // SENSOR_MT6701
 
 #include "motors/motor_config.h"
 #include "util.h"
@@ -45,7 +45,7 @@ MotorTask::~MotorTask() {}
     MT6701Sensor encoder = MT6701Sensor();
 #elif SENSOR_MAQ430
     MagneticSensorSPI encoder = MagneticSensorSPI(MAQ430_SPI, PIN_MAQ_SS);
-#endif
+#endif // SENSOR_TLV, SENSOR_MT6701, SENSOR_MAQ430
 
 void MotorTask::run() {
 
@@ -60,7 +60,7 @@ void MotorTask::run() {
     SPIClass* spi = new SPIClass(HSPI);
     spi->begin(PIN_MAQ_SCK, PIN_MAQ_MISO, PIN_MAQ_MOSI, PIN_MAQ_SS);
     encoder.init(spi);
-    #endif
+    #endif // SENSOR_TLV, SENSOR_MT6701, SENSOR_MAQ430
 
     motor.linkDriver(&driver);
 
@@ -79,7 +79,7 @@ void MotorTask::run() {
 
     #ifdef FOC_LPF
     motor.LPF_angle.Tf = FOC_LPF;
-    #endif
+    #endif // FOC_LPF
 
     motor.init();
 
@@ -173,7 +173,7 @@ void MotorTask::run() {
                             float shaft_angle = -motor.shaft_angle;
                         #else
                             float shaft_angle = motor.shaft_angle;
-                        #endif
+                        #endif // SK_INVERT_ROTATION
                         current_detent_center = shaft_angle + new_sub_position * new_config.position_width_radians;
                     }
                     config = new_config;
@@ -270,7 +270,7 @@ void MotorTask::run() {
         float angle_to_detent_center = motor.shaft_angle - current_detent_center;  // Positive means the physical sensor is to the "right" of the detent center
         #if SK_INVERT_ROTATION
             angle_to_detent_center = -motor.shaft_angle - current_detent_center;
-        #endif
+        #endif // SK_INVERT_ROTATION
 
         float snap_point_radians = config.position_width_radians * config.snap_point;
         float bias_radians = config.position_width_radians * config.snap_point_bias;
@@ -329,7 +329,7 @@ void MotorTask::run() {
             float torque = motor.PID_velocity(input);
             #if SK_INVERT_ROTATION
                 torque = -torque;
-            #endif
+            #endif // SK_INVERT_ROTATION
             motor.move(torque);
         }
 
@@ -592,5 +592,5 @@ void MotorTask::checkSensorError() {
     if (error.error) {
         LOG_ERROR("CRC error. Received %d; calculated %d", error.received_crc, error.calculated_crc);
     }
-#endif
+#endif // SENSOR_TLV, SENSOR_MT6701
 }

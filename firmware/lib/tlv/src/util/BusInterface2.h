@@ -49,4 +49,4 @@ bool writeOut(BusInterface_t *interface, uint8_t count);
 
 }
 
-#endif
+#endif // TLV493D_BUSIF_2_H_INCLUDED

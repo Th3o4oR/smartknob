@@ -1,14 +1,14 @@
 #if SK_LEDS
 #include <FastLED.h>
-#endif
+#endif // SK_LEDS
 
 #if SK_STRAIN
 #include <HX711.h>
-#endif
+#endif // SK_STRAIN
 
 #if SK_ALS
 #include <Adafruit_VEML7700.h>
-#endif
+#endif // SK_ALS
 
 // MOVE THESE TO HEADER WHEN COMPLETED
 #include <vector>
@@ -20,15 +20,15 @@
 
 #if SK_LEDS
 CRGB leds[NUM_LEDS];
-#endif
+#endif // SK_LEDS
 
 #if SK_STRAIN
 HX711 scale;
-#endif
+#endif // SK_STRAIN
 
 #if SK_ALS
 Adafruit_VEML7700 veml = Adafruit_VEML7700();
-#endif
+#endif // SK_ALS
 
 InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth, MotorTask& motor_task, DisplayTask* display_task, ConnectivityTask& connectivity_task) : 
         Task("Interface", stack_depth, 1, task_core),
@@ -54,7 +54,7 @@ InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth
         {
     #if SK_DISPLAY
         assert(display_task != nullptr);
-    #endif
+    #endif // SK_DISPLAY
 
     lights_page_.setLogger(this);
 
@@ -86,15 +86,16 @@ void InterfaceTask::run() {
     
     #if SK_LEDS
         FastLED.addLeds<SK6812, PIN_LED_DATA, GRB>(leds, NUM_LEDS);
-    #endif
+    #endif // SK_LEDS
 
     #if SK_ALS && PIN_SDA >= 0 && PIN_SCL >= 0
         Wire.begin(PIN_SDA, PIN_SCL);
         Wire.setClock(400000);
-    #endif
+    #endif // SK_ALS
+
     #if SK_STRAIN
         scale.begin(PIN_STRAIN_DO, PIN_STRAIN_SCK);
-    #endif
+    #endif // SK_STRAIN
 
     #if SK_ALS
         if (veml.begin()) {
@@ -103,7 +104,7 @@ void InterfaceTask::run() {
         } else {
             LOG_WARN("ALS sensor not found!");
         }
-    #endif
+    #endif // SK_ALS
 
     motor_task_.addListener(knob_state_queue_);
     connectivity_task_.addBrightnessListener(lights_page_.getBrightnessQueue());
@@ -293,7 +294,7 @@ void InterfaceTask::updateHardware() {
         //     log(buf_);
         //     last_als = millis();
         // }
-    #endif
+    #endif // SK_ALS
 
     static bool pressed;
     #if SK_STRAIN
@@ -348,19 +349,19 @@ void InterfaceTask::updateHardware() {
                     leds[i] = CRGB::Red;
                 }
                 FastLED.show();
-            #endif
+            #endif // SK_LEDS
         }
-    #endif
+    #endif // SK_STRAIN
 
     uint16_t brightness = UINT16_MAX;
     // TODO: brightness scale factor should be configurable (depends on reflectivity of surface)
     #if SK_ALS
         brightness = (uint16_t)CLAMP(lux_avg * 13000, (float)1280, (float)UINT16_MAX);
-    #endif
+    #endif // SK_ALS
 
     #if SK_DISPLAY
         display_task_->setBrightness(brightness); // TODO: apply gamma correction
-    #endif
+    #endif // SK_DISPLAY
 
     #if SK_LEDS
         for (uint8_t i = 0; i < NUM_LEDS; i++) {
@@ -372,7 +373,7 @@ void InterfaceTask::updateHardware() {
             leds[i].b = dim8_video(leds[i].b);
         }
         FastLED.show();
-    #endif
+    #endif // SK_LEDS
 }
 
 void InterfaceTask::setConfiguration(Configuration* configuration) {

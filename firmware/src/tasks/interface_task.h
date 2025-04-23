@@ -22,7 +22,7 @@
 
 #ifndef SK_FORCE_UART_STREAM
     #define SK_FORCE_UART_STREAM 0
-#endif
+#endif // SK_FORCE_UART_STREAM
 
 class InterfaceTask : public Task<InterfaceTask>, public Logger {
     friend class Task<InterfaceTask>; // Allow base Task to invoke protected run()
@@ -45,7 +45,7 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
         HWCDC stream_;
     #else
         UartStream stream_;
-    #endif
+    #endif // CONFIG_IDF_TARGET_ESP32S3
         MotorTask& motor_task_;
         DisplayTask* display_task_;
         ConnectivityTask& connectivity_task_;
