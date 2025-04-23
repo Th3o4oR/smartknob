@@ -2,7 +2,7 @@
 
 #include "page.h"
 #include "views/view.h"
-#include "../motor_task.h"
+#include "tasks/motor_task.h"
 
 class MainMenuPage : public Page {
     public:

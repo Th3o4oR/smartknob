@@ -1,10 +1,10 @@
 #include <Arduino.h>
 
 #include "configuration.h"
-#include "display_task.h"
-#include "interface_task.h"
-#include "motor_task.h"
-#include "connectivity_task.h"
+#include "tasks/display_task.h"
+#include "tasks/interface_task.h"
+#include "tasks/motor_task.h"
+#include "tasks/connectivity_task.h"
 
 Configuration config;
 

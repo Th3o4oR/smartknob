@@ -1,5 +1,5 @@
 #include "page.h"
-#include "../motor_task.h"
+#include "tasks/motor_task.h"
 #include "views/view.h"
 
 class MorePage : public Page {

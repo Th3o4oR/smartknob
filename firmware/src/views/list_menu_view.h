@@ -1,7 +1,7 @@
 #pragma once
 
 #include "view.h"
-#include "display_task.h"
+#include "tasks/display_task.h"
 #include "proto_gen/smartknob.pb.h"
 
 class ListMenuView: public View {

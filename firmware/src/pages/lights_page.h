@@ -1,7 +1,7 @@
 #include "page.h"
 #include "views/view.h"
-#include "../motor_task.h"
-#include "../connectivity_task.h"
+#include "tasks/motor_task.h"
+#include "tasks/connectivity_task.h"
 
 /**
  * @brief Callback to handle page changes

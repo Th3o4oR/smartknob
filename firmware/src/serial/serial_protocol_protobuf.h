@@ -5,7 +5,7 @@
 #include "../proto_gen/smartknob.pb.h"
 
 #include "interface_callbacks.h"
-#include "motor_task.h"
+#include "tasks/motor_task.h"
 #include "serial_protocol.h"
 #include "uart_stream.h"
 

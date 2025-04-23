@@ -1,7 +1,7 @@
 
 #include "page.h"
 #include "interface_callbacks.h"
-#include "../motor_task.h"
+#include "tasks/motor_task.h"
 #include "views/view.h"
 
 class SettingsPage: public Page {
