@@ -7,14 +7,14 @@ PB_SmartKnobConfig * SettingsPage::getPageConfig() {
 void SettingsPage::handleMenuInput(int position) {
     switch (position)
     {
-    case 0:
+    case SettingsMenuEntries::BACK:
     {
         if (page_change_callback_) {
             page_change_callback_(MAIN_MENU_PAGE);
         }
         break;
     }
-    case 1:
+    case SettingsMenuEntries::CALIBRATE_MOTOR:
     {
         motor_calibration_callback_();
         break;

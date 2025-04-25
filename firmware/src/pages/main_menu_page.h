@@ -4,6 +4,18 @@
 #include "views/view.h"
 #include "tasks/motor_task.h"
 
+// Needs to match the entries defined below
+enum MainMenuEntries {
+    BEDROOM_LIGHTS = 0,
+    DESK_LIGHTS,
+    SHADES,
+    HEATING,
+    MEDIA,
+    TIMER,
+    SETTINGS,
+    MORE
+};
+
 class MainMenuPage : public Page {
     public:
         MainMenuPage() : Page() {}
@@ -24,12 +36,12 @@ class MainMenuPage : public Page {
             .menu_entries = 
             {
                 {
-                    "Desk\nlights",
-                    "\ue0f0"
+                    "Bedroom\nlights",
+                    "\uf02a",
                 },
                 {
-                    "Room\nlights",
-                    "\uf02a"
+                    "Desk\nlights",
+                    "\ue0f0"
                 },
                 {
                     "Shades",

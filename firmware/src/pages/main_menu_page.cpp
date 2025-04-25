@@ -7,17 +7,17 @@ PB_SmartKnobConfig * MainMenuPage::getPageConfig() {
 void MainMenuPage::handleMenuInput(int position) {
     switch (position)
     {
-    case 0:
+    case MainMenuEntries::BEDROOM_LIGHTS:
         if (page_change_callback_) {
             page_change_callback_(LIGHTS_PAGE);
         }
         break;
-    case 6:
+    case MainMenuEntries::SETTINGS:
         if (page_change_callback_) {
             page_change_callback_(SETTINGS_PAGE);
         }
         break;
-    case 7:
+    case MainMenuEntries::MORE:
         if (page_change_callback_) {
             page_change_callback_(MORE_PAGE);
         }

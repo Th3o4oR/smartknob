@@ -15,7 +15,7 @@
 
 #include "input_type.h"
 #include "pages/main_menu_page.h"
-#include "pages/more_page.h"
+#include "pages/more_menu_page.h"
 #include "pages/lights_page.h"
 #include "pages/demo_page.h"
 #include "pages/settings_page.h"
@@ -78,7 +78,7 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
         SerialProtocolProtobuf proto_protocol_;
 
         MainMenuPage main_menu_page_;
-        MorePage more_page_;
+        MorePage more_menu_page_;
         LightsPage lights_page_;
         DemoPage demo_page_;
         SettingsPage settings_page_;

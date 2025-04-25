@@ -43,7 +43,7 @@ InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth
             applyConfig(config, true);
         }),
         main_menu_page_(),
-        more_page_(),
+        more_menu_page_(),
         lights_page_(connectivity_task_),
         settings_page_([this] () {
             motor_task_.runCalibration();
@@ -175,7 +175,7 @@ void InterfaceTask::run() {
     std::map<page_t, Page*> page_map = {
         { MAIN_MENU_PAGE, &main_menu_page_ },
         { SETTINGS_PAGE,  &settings_page_  },
-        { MORE_PAGE,      &more_page_      },
+        { MORE_PAGE,      &more_menu_page_ },
         { DEMO_PAGE,      &demo_page_      },
         { LIGHTS_PAGE,    &lights_page_    }
     };

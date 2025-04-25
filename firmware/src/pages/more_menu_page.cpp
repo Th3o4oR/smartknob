@@ -1,4 +1,4 @@
-#include "more_page.h"
+#include "more_menu_page.h"
 
 PB_SmartKnobConfig * MorePage::getPageConfig() {
     return &config_;
@@ -7,14 +7,14 @@ PB_SmartKnobConfig * MorePage::getPageConfig() {
 void MorePage::handleMenuInput(int position) {
     switch (position)
     {
-    case 0:
+    case MoreMenuEntries::BACK:
     {
         if (page_change_callback_) {
             page_change_callback_(MAIN_MENU_PAGE);
         }
         break;
     }
-    case 1:
+    case MoreMenuEntries::DEMO_CONFIGS:
     {
         if (page_change_callback_) {
             page_change_callback_(DEMO_PAGE);

@@ -4,6 +4,12 @@
 #include "tasks/motor_task.h"
 #include "views/view.h"
 
+enum SettingsMenuEntries {
+    BACK = 0,
+    CALIBRATE_MOTOR,
+    // CALIBRATE_STRAIN
+};
+
 class SettingsPage: public Page {
     public:
         SettingsPage(MotorCalibrationCallback motor_calibration_callback) : Page(), motor_calibration_callback_(motor_calibration_callback) {}
@@ -19,16 +25,16 @@ class SettingsPage: public Page {
         
         void handleMenuInput(int position);
         
-        #if SK_STRAIN
-            int maxPositions = 2;
-        #else
-            int maxPositions = 1;
-        #endif // SK_STRAIN
+        // #if SK_STRAIN
+        //     int maxPositions = 2;
+        // #else
+        //     int maxPositions = 1;
+        // #endif // SK_STRAIN
 
         PB_ViewConfig view_config = {
             VIEW_LIST_MENU,
             "Settings",
-            .menu_entries_count = 3,
+            .menu_entries_count = 2,
             .menu_entries = 
             {
                 {
@@ -39,10 +45,12 @@ class SettingsPage: public Page {
                     "Calibrate motor",
                     ""
                 },
-                {
-                    "Calibrate strain",
-                    ""
-                }
+                // This shouldn't be a menu option, since getting it wrong will cause the knob to be unusable
+                // It should only be available remotely, from the terminal (or web interface/app?)
+                // {
+                //     "Calibrate strain",
+                //     ""
+                // }
             }
         };
 
@@ -54,7 +62,7 @@ class SettingsPage: public Page {
             .sub_position_unit = 0,
             .position_nonce = 1,
             .min_position = 0,
-            .max_position = maxPositions,
+            .max_position = 1,
             .infinite_scroll = false,
             .position_width_radians = 45 * PI / 180,
             .detent_strength_unit = 0.5,

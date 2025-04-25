@@ -2,6 +2,11 @@
 #include "tasks/motor_task.h"
 #include "views/view.h"
 
+enum MoreMenuEntries {
+    BACK = 0,
+    DEMO_CONFIGS
+};
+
 class MorePage : public Page {
     public:
         MorePage() : Page() {}
