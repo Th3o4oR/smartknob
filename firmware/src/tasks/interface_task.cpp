@@ -180,23 +180,36 @@ void InterfaceTask::run() {
         { LIGHTS_PAGE,    &lights_page_    }
     };
     Page* current_page = NULL;
+
+    /**
+     * @brief Callback to handle page changes
+     * 
+     * @param page The requested page
+     */
     PageChangeCallback page_change_callback = [this, &current_page, &page_map] (page_t page) {
         auto it = page_map.find(page);
-        if (it != page_map.end()) {            
-            current_page = it->second;
-
-            // If the page has been visited previously, set the initial position to the previous position on that page
-            PB_SmartKnobConfig *page_config = current_page->getPageConfig(); // TODO: This might have to be a pointer
-            if (current_page->getVisited()) {
-                page_config->initial_position = current_page->getPreviousPosition(); // TODO: This can be replaced with the current position (state)
-            } else {
-                current_page->setVisited(true);
-                current_page->setPreviousPosition(page_config->initial_position);
-            }
-            applyConfig(*page_config, false);
-        } else {
+        if (it == page_map.end()) {
             LOG_ERROR("Unknown page requested");
+            return;
         }
+
+        // After starting up, current_page will be null
+        if (current_page != nullptr) {
+            // Update initial position for the current page, so returning to it will take the user to the same position
+            auto current_config = current_page->getPageConfig();
+            current_config->initial_position = latest_state_.current_position;
+        }
+
+        // Update current page to point to the new page
+        current_page = it->second;
+        auto config = current_page->getPageConfig();
+        applyConfig(*config, false);
+        
+        auto page_name = "Unnamed";
+        if (config->has_view_config) {
+            page_name = config->view_config.description;
+        }
+        LOG_INFO("Switching to page [%s]", page_name);
     };
 
     // Assign page change callback to all pages
@@ -223,7 +236,6 @@ void InterfaceTask::run() {
             if (new_state.config.position_nonce == position_nonce_) {
                 latest_state_ = new_state;
                 publishState();
-                current_page->setPreviousPosition(latest_state_.current_position);
                 current_page->handleState(latest_state_);
             } else {
                 LOG_WARN("Discarding outdated state message (expected nonce %d, got %d)", position_nonce_, new_state.config.position_nonce);
@@ -290,8 +302,7 @@ void InterfaceTask::updateHardware() {
         lux_avg = lux * LUX_ALPHA + lux_avg * (1 - LUX_ALPHA);
         // static uint32_t last_als;
         // if (millis() - last_als > 1000 && strain_calibration_step_ == 0) {
-        //     snprintf(buf_, sizeof(buf_), "millilux: %.2f", lux*1000);
-        //     log(buf_);
+        //     LOG_INFO("millilux: %.2f", lux*1000);
         //     last_als = millis();
         // }
     #endif // SK_ALS
@@ -303,8 +314,7 @@ void InterfaceTask::updateHardware() {
 
             // static uint32_t last_reading_display;
             // if (millis() - last_reading_display > 100 && strain_calibration_step_ == 0) {
-            //     snprintf(buf_, sizeof(buf_), "HX711 reading: %d", strain_reading_);
-            //     log(buf_);
+            //     LOG_INFO("HX711 reading: %d", strain_reading_);
             //     last_reading_display = millis();
             // }
             

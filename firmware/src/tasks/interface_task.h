@@ -49,7 +49,6 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
         MotorTask& motor_task_;
         DisplayTask* display_task_;
         ConnectivityTask& connectivity_task_;
-        char buf_[128];
 
         SemaphoreHandle_t mutex_;
         SemaphoreHandle_t i2c_mutex_;
@@ -63,7 +62,6 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
 
         SerialProtocol* current_protocol_ = nullptr;
         bool remote_controlled_ = false;
-        int current_config_ = 0;
         uint8_t press_count_ = 1;
 
         uint8_t position_nonce_ = 0; // This will overwrite all position_nonce values defined in the config, but should work fine, since it achieves the same thing
