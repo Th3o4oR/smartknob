@@ -2,7 +2,7 @@
 #include "tasks/motor_task.h"
 #include "views/view.h"
 
-enum MoreMenuEntries {
+enum class MoreMenu {
     BACK = 0,
     DEMO_CONFIGS
 };

@@ -4,7 +4,7 @@
 #include "tasks/motor_task.h"
 #include "views/view.h"
 
-enum SettingsMenuEntries {
+enum class SettingsMenu {
     BACK = 0,
     CALIBRATE_MOTOR,
     // CALIBRATE_STRAIN
@@ -24,12 +24,6 @@ class SettingsPage: public Page {
         MotorCalibrationCallback motor_calibration_callback_;
         
         void handleMenuInput(int position);
-        
-        // #if SK_STRAIN
-        //     int maxPositions = 2;
-        // #else
-        //     int maxPositions = 1;
-        // #endif // SK_STRAIN
 
         PB_ViewConfig view_config = {
             VIEW_LIST_MENU,

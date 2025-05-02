@@ -5,7 +5,7 @@
 #include "tasks/motor_task.h"
 
 // Needs to match the entries defined below
-enum MainMenuEntries {
+enum class MainMenu {
     BEDROOM_LIGHTS = 0,
     DESK_LIGHTS,
     SHADES,
