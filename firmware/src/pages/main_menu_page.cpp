@@ -25,6 +25,12 @@ void MainMenuPage::handleMenuInput(int position) {
             }
             break;
         }
+        case MainMenu::MEDIA: {
+            if (page_change_callback_) {
+                page_change_callback_(MEDIA_MENU_PAGE);
+            }
+            break;
+        }
         default:
             break;
     }

@@ -19,6 +19,7 @@
 #include "pages/lights_page.h"
 #include "pages/demo_page.h"
 #include "pages/settings_page.h"
+#include "pages/media_control_page.h"
 
 #ifndef SK_FORCE_UART_STREAM
     #define SK_FORCE_UART_STREAM 0
@@ -80,6 +81,7 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
         LightsPage lights_page_;
         DemoPage demo_page_;
         SettingsPage settings_page_;
+        MediaMenuPage media_menu_page_;
 
         userInput_t user_input_;
 

@@ -173,16 +173,20 @@ void InterfaceTask::run() {
     // Generate lambda to handle page changes
     // Assign callback to all pages
     std::map<page_t, Page*> page_map = {
-        { MAIN_MENU_PAGE, &main_menu_page_ },
-        { SETTINGS_PAGE,  &settings_page_  },
-        { MORE_PAGE,      &more_menu_page_ },
-        { DEMO_PAGE,      &demo_page_      },
-        { LIGHTS_PAGE,    &lights_page_    }
+        { MAIN_MENU_PAGE,  &main_menu_page_  },
+        { SETTINGS_PAGE,   &settings_page_   },
+        { MEDIA_MENU_PAGE, &media_menu_page_ },
+        { MORE_PAGE,       &more_menu_page_  },
+        { DEMO_PAGE,       &demo_page_       },
+        { LIGHTS_PAGE,     &lights_page_     }
     };
-    Page* current_page = NULL;
+    Page* current_page = nullptr;
 
     /**
-     * @brief Callback to handle page changes
+     * @brief Callback to handle page changes.
+     * 
+     * Used to set relevant parameters on the outgoing and incoming pages,
+     * like remembering the last position.
      * 
      * @param page The requested page
      */
@@ -195,7 +199,6 @@ void InterfaceTask::run() {
 
         // After starting up, current_page will be null
         if (current_page != nullptr) {
-            // Update initial position for the current page, so returning to it will take the user to the same position
             auto current_config = current_page->getPageConfig();
             current_config->initial_position = latest_state_.current_position;
         }
@@ -406,7 +409,6 @@ uint8_t InterfaceTask::incrementPositionNonce() {
 void InterfaceTask::applyConfig(PB_SmartKnobConfig& config, bool from_remote) {
     // Generate a new nonce for the updated state
     config.position_nonce = incrementPositionNonce();
-    // log(("Applying config with nonce " + String(config.position_nonce)).c_str());
     
     remote_controlled_ = from_remote;
     latest_config_ = config;

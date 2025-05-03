@@ -13,6 +13,7 @@ typedef enum {
     SETTINGS_PAGE,
     MORE_PAGE,
     DEMO_PAGE,
+    MEDIA_MENU_PAGE,
 } page_t;
 
 /**
