@@ -4,7 +4,9 @@
 
 enum class MoreMenu {
     BACK = 0,
-    DEMO_CONFIGS
+    DEMO_CONFIGS,
+
+    _MAX
 };
 
 class MorePage : public Page {
@@ -38,12 +40,12 @@ class MorePage : public Page {
             .sub_position_unit = 0,
             .position_nonce = 1,
             .min_position = 0,
-            .max_position = 1,
+            .max_position = static_cast<int>(MoreMenu::_MAX) - 1,
             .infinite_scroll = false,
-            .position_width_radians = 45 * PI / 180,
-            .detent_strength_unit = 0.5,
-            .endstop_strength_unit = 1,
-            .snap_point = 0.51,
+            .position_width_radians = 2 * PI / static_cast<int>(MediaMenu::_MAX),
+            .detent_strength_unit = CircleMenuView::DETENT_STRENGTH_UNIT,
+            .endstop_strength_unit = CircleMenuView::ENDSTOP_STRENGTH_UNIT,
+            .snap_point = CircleMenuView::SNAP_POINT,
             .detent_positions_count = 0,
             .detent_positions = {},
             .snap_point_bias = 0,

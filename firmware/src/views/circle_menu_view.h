@@ -6,6 +6,11 @@
 
 class CircleMenuView: public View {
     public:
+        static const int MAX_BUTTONS = 8;
+        static constexpr const float DETENT_STRENGTH_UNIT = 0.5f;
+        static constexpr const float ENDSTOP_STRENGTH_UNIT = 1.0f;
+        static constexpr const float SNAP_POINT = 0.51f;
+        
         CircleMenuView(lv_obj_t * screen, DisplayTask* display_task) {
             display_task_ = display_task;
             screen_ = screen;
@@ -18,19 +23,11 @@ class CircleMenuView: public View {
 
     private:
         DisplayTask* display_task_;
-        lv_obj_t * screen_;
-        lv_obj_t * label_desc;
-        lv_obj_t * arc;
-        lv_obj_t * arc_dot;
-        lv_obj_t * button1;
-        lv_obj_t * button2;
-        lv_obj_t * button3;
-        lv_obj_t * button4;
-        lv_obj_t * button5;
-        lv_obj_t * button6;
-        lv_obj_t * button7;
-        lv_obj_t * button8;
-        lv_obj_t * buttons[8] = {button1, button2, button3, button4, button5, button6, button7, button8};
+        lv_obj_t *screen_;
+        lv_obj_t *label_desc;
+        lv_obj_t *arc;
+        lv_obj_t *arc_dot;
+        lv_obj_t *buttons[MAX_BUTTONS];
         void setup_circle_menu_buttons(PB_SmartKnobConfig config);
         void setup_menu_elements();
 };

@@ -13,6 +13,7 @@ typedef enum {
 #define ICON_GEAR         "\ue8b8"
 #define ICON_BACK_ARROW   "\ue5c4"
 #define ICON_ELLIPSIS     "\ue5d3"
+#define ICON_NOTE_STACK   "\uf562"
 
 #define ICON_CEILING_LAMP "\uf02a"
 
