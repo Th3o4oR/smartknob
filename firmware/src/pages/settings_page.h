@@ -29,22 +29,13 @@ class SettingsPage: public Page {
             VIEW_LIST_MENU,
             "Settings",
             .menu_entries_count = 2,
-            .menu_entries = 
-            {
-                {
-                    "Back",
-                    "\ue5c4"
-                },
-                {
-                    "Calibrate motor",
-                    ""
-                },
+            .menu_entries = {
+                { "Back",             ICON_BACK_ARROW },
+                { "Calibrate\nmotor", ""              },
+                
                 // This shouldn't be a menu option, since getting it wrong will cause the knob to be unusable
                 // It should only be available remotely, from the terminal (or web interface/app?)
-                // {
-                //     "Calibrate strain",
-                //     ""
-                // }
+                // { "Calibrate\nstrain", ""             },
             }
         };
 

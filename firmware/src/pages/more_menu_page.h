@@ -24,16 +24,9 @@ class MorePage : public Page {
             VIEW_CIRCLE_MENU,
             "More",
             .menu_entries_count = 2,
-            .menu_entries = 
-            {
-                {
-                    "Back",
-                    "\ue5c4"
-                },
-                {
-                    "Demo\nconfigs",
-                    "\uf562"
-                }
+            .menu_entries = {
+                { "Back",          ICON_BACK_ARROW },
+                { "Demo\nconfigs", ICON_NOTE_STACK },
             }
         };
 

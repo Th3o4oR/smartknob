@@ -2,18 +2,21 @@
 
 #include "page.h"
 #include "views/view.h"
+#include "views/circle_menu_view.h"
 #include "tasks/motor_task.h"
 
 // Needs to match the entries defined below
 enum class MainMenu {
-    BEDROOM_LIGHTS = 0,
+    SETTINGS,
+    MORE,
+    BEDROOM_LIGHTS,
+    MEDIA,
+    TIMER,
     DESK_LIGHTS,
     SHADES,
     HEATING,
-    MEDIA,
-    TIMER,
-    SETTINGS,
-    MORE
+
+    _MAX
 };
 
 class MainMenuPage : public Page {
@@ -30,43 +33,18 @@ class MainMenuPage : public Page {
         void handleMenuInput(int position);  
 
         PB_ViewConfig view_config = {
-            VIEW_CIRCLE_MENU,
+            .view_type = VIEW_CIRCLE_MENU,
             "Main menu",
-            .menu_entries_count = 8,
-            .menu_entries = 
-            {
-                {
-                    "Bedroom\nlights",
-                    "\uf02a",
-                },
-                {
-                    "Desk\nlights",
-                    "\ue0f0"
-                },
-                {
-                    "Shades",
-                    "\uec12"
-                },
-                {
-                    "Heating",
-                    "\ue1ff"
-                },
-                {
-                    "Media",
-                    "\uf137"
-                },
-                {
-                    "Timer",
-                    "\ue425"
-                },
-                {
-                    "Settings",
-                    "\ue8b8"
-                },
-                {
-                    "More",
-                    "\ue5d3"
-                }
+            .menu_entries_count = static_cast<int>(MainMenu::_MAX),
+            .menu_entries = {
+                { "Settings",        ICON_GEAR         },
+                { "More",            ICON_ELLIPSIS     },
+                { "Bedroom\nlights", ICON_CEILING_LAMP },
+                { "Media",           ICON_PLAY_PAUSE   },
+                { "Timer",           ICON_TIMER        },
+                { "Desk\nlights",    ICON_CEILING_LAMP },
+                { "Shades",          ICON_SHADES       },
+                { "Heating",         ICON_HEATING      },
             }
         };
 
@@ -74,13 +52,13 @@ class MainMenuPage : public Page {
         {
             .has_view_config = true,
             .view_config = view_config,
-            .initial_position = 0,
+            .initial_position = 2,
             .sub_position_unit = 0,
             .position_nonce = 0,
             .min_position = 0,
-            .max_position = 7,
+            .max_position = static_cast<int>(MainMenu::_MAX) - 1,
             .infinite_scroll = true,
-            .position_width_radians = 45 * PI / 180,
+            .position_width_radians = 2 * PI / CircleMenuView::MAX_BUTTONS,
             .detent_strength_unit = 0.5,
             .endstop_strength_unit = 1,
             .snap_point = 0.51,

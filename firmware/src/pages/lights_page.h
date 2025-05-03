@@ -51,8 +51,8 @@ class LightsPage : public Page {
             .has_view_config = true,
             .view_config =
             {
-                            VIEW_DIAL,
-                            "Bedroom lights"
+                VIEW_DIAL,
+                "Bedroom lights"
             },
             .initial_position       = 50,
             .sub_position_unit      = 0,
