@@ -30,12 +30,12 @@ class SettingsPage: public Page {
             "Settings",
             .menu_entries_count = 2,
             .menu_entries = {
-                { "Back",             ICON_BACK_ARROW },
-                { "Calibrate\nmotor", ""              },
+                { "Back",            ICON_BACK_ARROW },
+                { "Calibrate motor", ""              },
                 
                 // This shouldn't be a menu option, since getting it wrong will cause the knob to be unusable
                 // It should only be available remotely, from the terminal (or web interface/app?)
-                // { "Calibrate\nstrain", ""             },
+                // { "Calibrate strain", ""             },
             }
         };
 

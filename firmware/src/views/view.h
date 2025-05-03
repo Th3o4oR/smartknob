@@ -10,21 +10,21 @@ typedef enum {
 } view_t;
 
 // Icons (codepoints) from Google Fonts, https://fonts.google.com/icons
-#define ICON_GEAR         "\ue8b8"
-#define ICON_BACK_ARROW   "\ue5c4"
-#define ICON_ELLIPSIS     "\ue5d3"
-#define ICON_NOTE_STACK   "\uf562"
+#define ICON_GEAR          "\ue8b8"
+#define ICON_BACK_ARROW    "\ue5c4"
+#define ICON_ELLIPSIS      "\ue5d3"
+#define ICON_NOTE_STACK    "\uf562"
 
-#define ICON_CEILING_LAMP "\uf02a"
+#define ICON_CEILING_LAMP  "\uf02a"
 
-#define ICON_PLAY_PAUSE   "\uf137"
-#define ICON_SKIP_NEXT    "\ue044"
-#define ICON_SKIP_PREV    "\ue045"
-#define ICON_VOLUME       "\ue050"
+#define ICON_PLAY_PAUSE    "\uf137"
+#define ICON_SKIP_NEXT     "\ue044"
+#define ICON_SKIP_PREV     "\ue045"
+#define ICON_VOLUME        "\ue050"
 
-#define ICON_TIMER        "\ue425"
-#define ICON_SHADES       "\uec12"
-#define ICON_HEATING      "\ue1ff"
+#define ICON_TIMER         "\ue425"
+#define ICON_ROLLER_SHADES "\uec12"
+#define ICON_THERMOSTAT    "\ue1ff"
 
 class View {
     public:

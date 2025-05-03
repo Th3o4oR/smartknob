@@ -1,6 +1,7 @@
 #include "page.h"
 #include "tasks/motor_task.h"
 #include "views/view.h"
+#include "views/circle_menu_view.h"
 
 enum class MoreMenu {
     BACK = 0,
@@ -42,7 +43,7 @@ class MorePage : public Page {
             .min_position = 0,
             .max_position = static_cast<int>(MoreMenu::_MAX) - 1,
             .infinite_scroll = false,
-            .position_width_radians = 2 * PI / static_cast<int>(MediaMenu::_MAX),
+            .position_width_radians = 2 * PI / CircleMenuView::MAX_BUTTONS,
             .detent_strength_unit = CircleMenuView::DETENT_STRENGTH_UNIT,
             .endstop_strength_unit = CircleMenuView::ENDSTOP_STRENGTH_UNIT,
             .snap_point = CircleMenuView::SNAP_POINT,
