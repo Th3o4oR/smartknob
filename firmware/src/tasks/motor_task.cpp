@@ -124,26 +124,13 @@ void MotorTask::run() {
                 case CommandType::CONFIG: {
                     // Check new config for validity
                     PB_SmartKnobConfig& new_config = command.data.config;
-                    if (new_config.detent_strength_unit < 0) {
-                        LOG_WARN("Ignoring invalid config: detent_strength_unit cannot be negative");
-                        break;
-                    }
-                    if (new_config.endstop_strength_unit < 0) {
-                        LOG_WARN("Ignoring invalid config: endstop_strength_unit cannot be negative");
-                        break;
-                    }
-                    if (new_config.snap_point < 0.5) {
-                        LOG_WARN("Ignoring invalid config: snap_point must be >= 0.5 for stability");
-                        break;
-                    }
-                    if (new_config.detent_positions_count > COUNT_OF(new_config.detent_positions)) {
-                        LOG_WARN("Ignoring invalid config: detent_positions_count is too large");
-                        break;
-                    }
-                    if (new_config.snap_point_bias < 0) {
-                        LOG_WARN("Ignoring invalid config: snap_point_bias cannot be negative or there is risk of instability");
-                        break;
-                    }
+                    assert(new_config.detent_strength_unit >= 0);
+                    assert(new_config.endstop_strength_unit >= 0);
+                    assert(new_config.snap_point >= 0.5);
+                    assert(new_config.detent_positions_count <= COUNT_OF(new_config.detent_positions));
+                    assert(new_config.snap_point_bias >= 0);
+                    assert(new_config.position_width_radians >= 0);
+                    assert(new_config.initial_position >= new_config.min_position && new_config.initial_position <= new_config.max_position);
 
                     // Change haptic input mode
                     bool position_updated = false;
