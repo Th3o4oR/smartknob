@@ -130,7 +130,10 @@ void MotorTask::run() {
                     assert(new_config.detent_positions_count <= COUNT_OF(new_config.detent_positions));
                     assert(new_config.snap_point_bias >= 0);
                     assert(new_config.position_width_radians >= 0);
-                    assert(new_config.initial_position >= new_config.min_position && new_config.initial_position <= new_config.max_position);
+                    if (new_config.min_position < new_config.max_position) {
+                        // If the minimum position is greater than the maximum position, the bounds are disabled
+                        assert(new_config.initial_position >= new_config.min_position && new_config.initial_position <= new_config.max_position);
+                    }
 
                     // Change haptic input mode
                     bool position_updated = false;
