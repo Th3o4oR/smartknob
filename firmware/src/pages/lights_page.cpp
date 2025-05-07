@@ -4,11 +4,26 @@ PB_SmartKnobConfig * LightsPage::getPageConfig() {
     return &config_;
 }
 
+double mapf(double x, double in_min, double in_max, double out_min, double out_max) {
+    const double run = in_max - in_min;
+    assert(in_min < in_max);
+    // if (run == 0) {
+    //     return -1; // Avoid division by zero
+    // }
+    const double rise = out_max - out_min;
+    const double delta = x - in_min;
+    return (delta * rise) / run + out_min;
+}
+
 uint8_t positionToBrightness(int32_t position, PB_SmartKnobConfig config) {
-    return map(position, config.min_position, config.max_position, 0, 255); // in-min, in-max, out-min, out-max
+    float mapped = mapf(position, config.min_position, config.max_position, 0, 255); // in-min, in-max, out-min, out-max
+    uint8_t brightness = round(mapped);
+    return brightness;
 }
 int32_t brightnessToPosition(uint8_t brightness, PB_SmartKnobConfig config) {
-    return map(brightness, 0, 255, config.min_position, config.max_position); // in-min, in-max, out-min, out-max
+    float mapped = mapf(brightness, 0, 255, config.min_position, config.max_position); // in-min, in-max, out-min, out-max
+    int32_t position = round(mapped);
+    return position;
 }
 
 void LightsPage::handleState(PB_SmartKnobState state) {
