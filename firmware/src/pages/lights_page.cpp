@@ -4,12 +4,26 @@ PB_SmartKnobConfig * LightsPage::getPageConfig() {
     return &config_;
 }
 
+/**
+ * @brief Map a value from one range to another.
+ * The runs (in_max - in_min) and (out_max - out_min) must both be strictly positive.
+ * 
+ * @param x Input value to map
+ * @param in_min Input range minimum
+ * @param in_max Input range maximum
+ * @param out_min Output range minimum
+ * @param out_max Output range maximum
+ * @return double 
+ */
 double mapf(double x, double in_min, double in_max, double out_min, double out_max) {
     const double run = in_max - in_min;
+
     assert(in_min < in_max);
+    assert(out_min < out_max);
     // if (run == 0) {
     //     return -1; // Avoid division by zero
     // }
+    
     const double rise = out_max - out_min;
     const double delta = x - in_min;
     return (delta * rise) / run + out_min;
@@ -26,18 +40,12 @@ int32_t brightnessToPosition(uint8_t brightness, PB_SmartKnobConfig config) {
     return position;
 }
 
-void LightsPage::checkForLightingUpdates(PB_SmartKnobState &state, PB_SmartKnobConfig &config) {
-    LightingPayload lighting;
-    if (xQueueReceive(incoming_lighting_queue_, &lighting, 0) != pdTRUE) {
-        return; // No new lighting data, return
+void LightsPage::checkForBrightnessUpdates(PB_SmartKnobState &state, PB_SmartKnobConfig &config) {
+    BrightnessData brightness_data;
+    if (xQueueReceive(incoming_brightness_queue_, &brightness_data, 0) != pdTRUE) {
+        return; // No new brightness data, return
     }
 
-    if (!std::holds_alternative<BrightnessData>(lighting)) {
-        LOG_WARN("LIGHTS: Ignoring non-brightness data");
-        return;
-    }
-
-    const auto& brightness_data = std::get<BrightnessData>(lighting);
     const uint8_t brightness = brightness_data.brightness;
     int32_t new_position = brightnessToPosition(brightness, config_);
     LOG_INFO("LIGHTS: Received brightness from MQTT (%d) → position: %d", brightness, new_position);
@@ -60,7 +68,7 @@ void LightsPage::checkForLightingUpdates(PB_SmartKnobState &state, PB_SmartKnobC
 
 void LightsPage::handleState(PB_SmartKnobState state) {
     // Incoming
-    checkForLightingUpdates(state, config_);
+    checkForBrightnessUpdates(state, config_);
 
     // Outgoing
     if (last_published_position_ != state.current_position) {

@@ -73,13 +73,11 @@ void ConnectivityTask::receiveFromSubscriptions() {
                 return;
             }
             
-            LightingPayload lighting_payload = BrightnessData { .brightness = payload["brightness"] };
-            if (payload["state"] == "OFF") {
-                lighting_payload = BrightnessData { .brightness = 0 };
-            }
+            BrightnessData brightness_payload = { .brightness = payload["brightness"] };
+            if (payload["state"] == "OFF") { brightness_payload.brightness = 0; }
 
-            for (auto listener : lighting_listeners_) {
-                xQueueSend(listener, &lighting_payload, portMAX_DELAY);
+            for (auto listener : brightness_listeners_) {
+                xQueueSend(listener, &brightness_payload, portMAX_DELAY);
             }
         }
     }
@@ -118,16 +116,8 @@ void ConnectivityTask::run() {
             
             Adafruit_MQTT_Publish *feed_pub = nullptr;
             auto visitor = overload {
-                [&](const LightingPayload& p) {
-                    auto visitor = overload {
-                        [&](const ColorData& p) {
-                            // json_payload["color"]["r"] = p.r;
-                        },
-                        [&](const BrightnessData& p) {
-                            json_payload["brightness"] = p.brightness;
-                        },
-                    };
-                    std::visit(visitor, p);
+                [&](const BrightnessData& p) {
+                    json_payload["brightness"] = p.brightness;
                     feed_pub = &feed_pub_lighting;
                 },
                 [&](const PlayPauseData& p) {
@@ -286,8 +276,8 @@ bool ConnectivityTask::connectToMqttBroker() {
     return false;
 }
 
-void ConnectivityTask::registerLightingListener(QueueHandle_t queue) {
-    lighting_listeners_.push_back(queue);
+void ConnectivityTask::registerBrightnessListener(QueueHandle_t queue) {
+    brightness_listeners_.push_back(queue);
 }
 void ConnectivityTask::registerStateListener(QueueHandle_t queue) {
     state_listeners_.push_back(queue);

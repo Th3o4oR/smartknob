@@ -32,14 +32,11 @@ struct BrightnessData { int brightness; };
 struct PlayPauseData { bool paused; };
 struct SkipData { bool forward; };
 
-using LightingPayload = std::variant<
-    ColorData,
-    BrightnessData
->;
 using MQTTPayload = std::variant<
-    LightingPayload,
+    ColorData,
+    BrightnessData,
     PlayPauseData,
-    SkipData
+    SkipData,
 >;
 
 static constexpr uint32_t WIFI_SCAN_INTERVAL_MS       = 60 * 1000;
@@ -54,7 +51,7 @@ class ConnectivityTask : public Task<ConnectivityTask> {
     ConnectivityTask(const uint8_t task_core, const uint32_t stack_depth);
     ~ConnectivityTask();
 
-    void registerLightingListener(QueueHandle_t queue);
+    void registerBrightnessListener(QueueHandle_t queue);
     void registerStateListener(QueueHandle_t queue);
     void sendMqttMessage(MQTTPayload message);
     void receiveFromSubscriptions();
@@ -66,7 +63,7 @@ class ConnectivityTask : public Task<ConnectivityTask> {
     uint32_t last_wifi_scan_               = 0;
     uint32_t last_mqtt_connection_attempt_ = 0;
 
-    std::vector<QueueHandle_t> lighting_listeners_;
+    std::vector<QueueHandle_t> brightness_listeners_;
     std::vector<QueueHandle_t> state_listeners_;
 
     QueueHandle_t transmit_queue_;
