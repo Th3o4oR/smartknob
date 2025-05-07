@@ -26,47 +26,51 @@ int32_t brightnessToPosition(uint8_t brightness, PB_SmartKnobConfig config) {
     return position;
 }
 
+void LightsPage::checkForLightingUpdates(PB_SmartKnobState &state, PB_SmartKnobConfig &config) {
+    LightingPayload lighting;
+    if (xQueueReceive(incoming_lighting_queue_, &lighting, 0) != pdTRUE) {
+        return; // No new lighting data, return
+    }
+
+    if (!std::holds_alternative<BrightnessData>(lighting)) {
+        LOG_WARN("LIGHTS: Ignoring non-brightness data");
+        return;
+    }
+
+    const auto& brightness_data = std::get<BrightnessData>(lighting);
+    const uint8_t brightness = brightness_data.brightness;
+    int32_t new_position = brightnessToPosition(brightness, config_);
+    LOG_INFO("LIGHTS: Received brightness from MQTT (%d) → position: %d", brightness, new_position);
+
+    const uint32_t time_since_last_update = millis() - last_publish_time_;
+    if (time_since_last_update < BRIGHTNESS_UPDATE_COOLDOWN_MS) {
+        LOG_WARN("LIGHTS: Ignoring brightness update due to cooldown (%lu ms)", time_since_last_update);
+        return;
+    }
+    
+    PB_SmartKnobConfig* page_config = getPageConfig();
+    new_position = brightnessToPosition(brightness, *page_config);
+    page_config->initial_position = new_position; // Set the initial position, so when the config is applied, the motor task will set this as the current position
+    config_change_callback_(page_config);
+    LOG_INFO("LIGHTS: Updating position to match received brightness");
+
+    state.current_position = new_position;
+    last_published_position_ = new_position;
+}
+
 void LightsPage::handleState(PB_SmartKnobState state) {
-    // Prevent updating the brightness value from MQTT messages within a certain time after the last publish
-    uint8_t brightness;
-    if (xQueueReceive(brightness_queue_, &brightness, 0) == pdTRUE) {
-        LOG_INFO("LIGHTS: Received brightness from MQTT (%d) (position: %d)", brightness, brightnessToPosition(brightness, config_));
-        if (millis() - last_publish_time_ < BRIGHTNESS_UPDATE_COOLDOWN_MS) { // TODO: This shouldn't use the last_publish_time_, but rather the time since the state was last updated (knob rotated)
-            LOG_WARN("LIGHTS: Ignoring brightness update due to cooldown");
-        } else {
-            LOG_INFO("LIGHTS: Updating position to match received brightness");
-            PB_SmartKnobConfig *page_config = getPageConfig();
-            int32_t position = brightnessToPosition(brightness, *page_config);
-            page_config->initial_position = position;
-            config_change_callback_(page_config);
-            state.current_position = position; // Update local variable for use in the rest of the function
-            last_published_position_ = position; // Update the last published position to prevent immediate republishing
-        }
-    }
+    // Incoming
+    checkForLightingUpdates(state, config_);
 
-    bool lights_state;
-    if (xQueueReceive(state_queue_, &lights_state, 0) == pdTRUE) {
-        LOG_INFO("LIGHTS: Received `off` state from MQTT");
-        if (millis() - last_publish_time_ < BRIGHTNESS_UPDATE_COOLDOWN_MS) { // TODO: This shouldn't use the last_publish_time_, but rather the time since the state was last updated (knob rotated)
-            LOG_WARN("LIGHTS: Ignoring brightness update due to cooldown");
-        } else {
-            LOG_INFO("LIGHTS: Updating postition to match `off` state");
-            PB_SmartKnobConfig *page_config = getPageConfig();
-            int32_t position = brightnessToPosition(0, *page_config);
-            page_config->initial_position = position;
-            config_change_callback_(page_config);
-            state.current_position = position; // Update local variable for use in the rest of the function
-            last_published_position_ = position; // Update the last published position to prevent immediate republishing
-        }
-    }
-
+    // Outgoing
     if (last_published_position_ != state.current_position) {
         if (millis() - last_publish_time_ > MQTT_PUBLISH_FREQUENCY_MS) {
-            LOG_INFO("LIGHTS: Publishing position to MQTT: %d (brightness: %d)", state.current_position, positionToBrightness(state.current_position, config_));
-            Message msg = {
-                .trigger_name = "lights",
-                .trigger_value = positionToBrightness(state.current_position, config_)
-            };
+            LOG_INFO(
+                "LIGHTS: Publishing position to MQTT: %d (brightness: %d)",
+                state.current_position,
+                positionToBrightness(state.current_position, config_)
+            );
+            BrightnessData msg = { .brightness = positionToBrightness(state.current_position, config_), };
             connectivity_task_.sendMqttMessage(msg);
             last_publish_time_ = millis();
             last_published_position_ = state.current_position;

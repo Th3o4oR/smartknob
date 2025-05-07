@@ -12,36 +12,38 @@ typedef std::function<void(PB_SmartKnobConfig *)> ConfigChangeCallback;
 
 static constexpr uint32_t BRIGHTNESS_UPDATE_COOLDOWN_MS = 1000; // Cooldown from the last time the lights page published a brightness value, until it will update its own brightness from received MQTT messages
 static constexpr uint32_t MQTT_PUBLISH_FREQUENCY_MS = 500; // Frequency at which the lights page will publish its position to MQTT
+static constexpr uint32_t INCOMING_LIGHTING_QUEUE_SIZE = 1; // Size of the incoming brightness queue
 
 class LightsPage : public Page {
     public:
         LightsPage(ConnectivityTask &connectivity_task)
             : Page()
             , connectivity_task_(connectivity_task)
-            , brightness_queue_(xQueueCreate(1, sizeof(uint8_t)))
-            , state_queue_(xQueueCreate(1, sizeof(bool)))
-            {}
+            , incoming_lighting_queue_(xQueueCreate(INCOMING_LIGHTING_QUEUE_SIZE, sizeof(LightingPayload)))
+        {
+            assert(incoming_lighting_queue_ != NULL);
+        }
 
-        ~LightsPage() {}
+        ~LightsPage() {
+            vQueueDelete(incoming_lighting_queue_);
+        }
 
         PB_SmartKnobConfig *getPageConfig() override;
         void                handleState(PB_SmartKnobState state) override;
         void                handleUserInput(input_t input, int input_data, PB_SmartKnobState state) override;
 
-        QueueHandle_t getBrightnessQueue() { return brightness_queue_; }
-        QueueHandle_t getStateQueue() { return state_queue_; }
+        QueueHandle_t getIncomingLightingQueue() { return incoming_lighting_queue_; }
 
         void setConfigChangeCallback(ConfigChangeCallback callback) {
             config_change_callback_ = callback;
         }
 
     private:
-        ConnectivityTask &connectivity_task_;
+        ConnectivityTask& connectivity_task_;
 
         ConfigChangeCallback config_change_callback_;
 
-        QueueHandle_t brightness_queue_;
-        QueueHandle_t state_queue_;
+        QueueHandle_t incoming_lighting_queue_;
 
         uint32_t last_publish_time_;
         uint32_t last_published_position_;
@@ -69,4 +71,6 @@ class LightsPage : public Page {
             .snap_point_bias        = 0,
             .led_hue                = 30
         };
+
+        void checkForLightingUpdates(PB_SmartKnobState&, PB_SmartKnobConfig&);
 };

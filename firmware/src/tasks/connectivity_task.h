@@ -1,44 +1,76 @@
 #pragma once
 
 #include <Arduino.h>
-#include "task.h"
-// #include "logger.h"
+#include <ArduinoJson.h>
+#include <WiFi.h>
+#include <Adafruit_MQTT.h>
+#include <Adafruit_MQTT_Client.h>
+
 #include <vector>
+#include <map>
+#include <variant>
+#include <unordered_map>
+#include <typeindex>
 
-static constexpr uint32_t WIFI_SCAN_INTERVAL_MS = 60 * 1000;
-static constexpr uint32_t WIFI_CONNECT_TIMEOUT_MS = 5 * 1000;
+#include "task.h"
+#include "secrets.h" // SMARTKNOB_ID
 
+#define TOPIC_DISCOVERY        "homeassistant/device_automation/knob_" SMARTKNOB_ID "/action_knob/config"
+#define TOPIC_BASE             "knob/" SMARTKNOB_ID
+#define TOPIC_PUBLISH_PREFIX   TOPIC_BASE "/action"
+#define TOPIC_SUBSCRIBE_PREFIX TOPIC_BASE "/set"
+
+#define TOPIC_PUBLISH_LIGHTING   TOPIC_PUBLISH_PREFIX "/lighting"
+#define TOPIC_PUBLISH_PLAY_PAUSE TOPIC_PUBLISH_PREFIX "/play_pause"
+#define TOPIC_PUBLISH_SKIP       TOPIC_PUBLISH_PREFIX "/skip"
+#define TOPIC_PUBLISH_VOLUME     TOPIC_PUBLISH_PREFIX "/volume"
+
+#define TOPIC_SUBSCRIBE_BRIGHTNESS "zigbee2mqtt/Bed facing"
+
+struct ColorData { uint8_t r, g, b; };
+struct BrightnessData { int brightness; };
+struct PlayPauseData { bool paused; };
+struct SkipData { bool forward; };
+
+using LightingPayload = std::variant<
+    ColorData,
+    BrightnessData
+>;
+using MQTTPayload = std::variant<
+    LightingPayload,
+    PlayPauseData,
+    SkipData
+>;
+
+static constexpr uint32_t WIFI_SCAN_INTERVAL_MS       = 60 * 1000;
+static constexpr uint32_t WIFI_CONNECT_TIMEOUT_MS     = 5 * 1000;
 static constexpr uint32_t MQTT_CONNECTION_INTERVAL_MS = 5 * 1000;
-
-struct Message {
-    String trigger_name;
-    int trigger_value;
-};
+static constexpr uint32_t TRANSMISSION_QUEUE_SIZE     = 8;
 
 class ConnectivityTask : public Task<ConnectivityTask> {
     friend class Task<ConnectivityTask>; // Allow base Task to invoke protected run()
 
-    public:
-        ConnectivityTask(const uint8_t task_core, const uint32_t stack_depth);
-        ~ConnectivityTask();
+  public:
+    ConnectivityTask(const uint8_t task_core, const uint32_t stack_depth);
+    ~ConnectivityTask();
 
-        void addBrightnessListener(QueueHandle_t queue);
-        void addStateListener(QueueHandle_t queue);
-        void sendMqttMessage(Message message);
-        void receiveFromSubscriptions();
+    void registerLightingListener(QueueHandle_t queue);
+    void registerStateListener(QueueHandle_t queue);
+    void sendMqttMessage(MQTTPayload message);
+    void receiveFromSubscriptions();
 
-    protected:
-        void run();
+  protected:
+    void run();
 
-    private:
-        uint32_t last_wifi_scan_ = 0;
-        uint32_t last_mqtt_connection_attempt_ = 0;
-        
-        std::vector<QueueHandle_t> brightness_listeners_;
-        std::vector<QueueHandle_t> state_listeners_;
+  private:
+    uint32_t last_wifi_scan_               = 0;
+    uint32_t last_mqtt_connection_attempt_ = 0;
 
-        QueueHandle_t transmit_queue_;
+    std::vector<QueueHandle_t> lighting_listeners_;
+    std::vector<QueueHandle_t> state_listeners_;
 
-        bool initWiFi();
-        bool connectToMqttBroker();
+    QueueHandle_t transmit_queue_;
+
+    bool initWiFi();
+    bool connectToMqttBroker();
 };

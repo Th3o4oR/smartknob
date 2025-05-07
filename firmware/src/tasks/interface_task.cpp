@@ -45,6 +45,7 @@ InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth
         main_menu_page_(),
         more_menu_page_(),
         lights_page_(connectivity_task_),
+        media_menu_page_(connectivity_task_),
         settings_page_([this] () {
             motor_task_.runCalibration();
         }),
@@ -107,8 +108,7 @@ void InterfaceTask::run() {
     #endif // SK_ALS
 
     motor_task_.addListener(knob_state_queue_);
-    connectivity_task_.addBrightnessListener(lights_page_.getBrightnessQueue());
-    connectivity_task_.addStateListener(lights_page_.getStateQueue());
+    connectivity_task_.registerLightingListener(lights_page_.getIncomingLightingQueue());
     display_task_ -> setListener(user_input_queue_);
 
     plaintext_protocol_.init(
