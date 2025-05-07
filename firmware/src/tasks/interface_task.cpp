@@ -108,8 +108,8 @@ void InterfaceTask::run() {
     #endif // SK_ALS
 
     motor_task_.addListener(knob_state_queue_);
-    connectivity_task_.registerBrightnessListener(lights_page_.getIncomingBrightnessQueue());
-    display_task_ -> setListener(user_input_queue_);
+    connectivity_task_.registerListener<BrightnessData>(lights_page_.getIncomingBrightnessQueue());
+    display_task_->setListener(user_input_queue_);
 
     plaintext_protocol_.init(
         [this] () {

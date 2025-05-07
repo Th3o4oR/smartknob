@@ -29,7 +29,7 @@ ConnectivityTask::ConnectivityTask(const uint8_t task_core, const uint32_t stack
 
 ConnectivityTask::~ConnectivityTask() {}
 
-void sendMqttKnobStateDiscoveryMsg() {
+void sendMQTTKnobDiscoveryMsg() {
     JsonDocument payload;
     char         buffer[512];
 
@@ -75,10 +75,7 @@ void ConnectivityTask::receiveFromSubscriptions() {
             
             BrightnessData brightness_payload = { .brightness = payload["brightness"] };
             if (payload["state"] == "OFF") { brightness_payload.brightness = 0; }
-
-            for (auto listener : brightness_listeners_) {
-                xQueueSend(listener, &brightness_payload, portMAX_DELAY);
-            }
+            dispatchToListeners(brightness_payload);
         }
     }
 }
@@ -269,16 +266,36 @@ bool ConnectivityTask::connectToMqttBroker() {
         }
 
         LOG_SUCCESS("MQTT Connected!");
-        sendMqttKnobStateDiscoveryMsg();
+        sendMQTTKnobDiscoveryMsg();
         return true;
     }
 
     return false;
 }
 
-void ConnectivityTask::registerBrightnessListener(QueueHandle_t queue) {
-    brightness_listeners_.push_back(queue);
+/**
+ * @brief Register a listener for a specific type of data.
+ * 
+ * @tparam T The type of data to listen for.
+ * @param queue The queue handle to register as a listener.
+ */
+template <typename T>
+void ConnectivityTask::registerListener(QueueHandle_t queue) {
+    listeners_[typeid(T)].push_back(queue);
 }
-void ConnectivityTask::registerStateListener(QueueHandle_t queue) {
-    state_listeners_.push_back(queue);
+
+/**
+ * @brief Dispatch data to all listeners of the specified type.
+ * 
+ * @tparam T The type of data to dispatch.
+ * @param data The data to dispatch.
+ */
+template <typename T>
+void ConnectivityTask::dispatchToListeners(const T& data) {
+    auto it = listeners_.find(std::type_index(typeid(T)));
+    if (it != listeners_.end()) {
+        for (auto& queue : it->second) {
+            xQueueSend(queue, &data, portMAX_DELAY);
+        }
+    }
 }

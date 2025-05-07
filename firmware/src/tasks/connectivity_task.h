@@ -51,10 +51,11 @@ class ConnectivityTask : public Task<ConnectivityTask> {
     ConnectivityTask(const uint8_t task_core, const uint32_t stack_depth);
     ~ConnectivityTask();
 
-    void registerBrightnessListener(QueueHandle_t queue);
-    void registerStateListener(QueueHandle_t queue);
     void sendMqttMessage(MQTTPayload message);
     void receiveFromSubscriptions();
+
+    template <typename T>
+    void registerListener(QueueHandle_t queue);
 
   protected:
     void run();
@@ -63,11 +64,13 @@ class ConnectivityTask : public Task<ConnectivityTask> {
     uint32_t last_wifi_scan_               = 0;
     uint32_t last_mqtt_connection_attempt_ = 0;
 
-    std::vector<QueueHandle_t> brightness_listeners_;
-    std::vector<QueueHandle_t> state_listeners_;
-
+    std::unordered_map<std::type_index, std::vector<QueueHandle_t>> listeners_;
+    
     QueueHandle_t transmit_queue_;
 
+    template <typename T>
+    void dispatchToListeners(const T& data);
+    
     bool initWiFi();
     bool connectToMqttBroker();
 };
