@@ -26,7 +26,7 @@ class DisplayTask : public Task<DisplayTask> {
 
         void setListener(QueueHandle_t queue);
         void publish(userInput_t user_input);
-        void flushDisplay(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p);
+        // void flushDisplay(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p);
         void setBrightness(uint16_t brightness);
         void setI2CMutex(SemaphoreHandle_t * mutex);
         static void button_event_cb(lv_event_t * event);

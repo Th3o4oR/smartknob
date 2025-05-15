@@ -4,30 +4,6 @@ PB_SmartKnobConfig * LightsPage::getPageConfig() {
     return &config_;
 }
 
-/**
- * @brief Map a value from one range to another.
- * The runs (in_max - in_min) and (out_max - out_min) must both be strictly positive.
- * 
- * @param x Input value to map
- * @param in_min Input range minimum
- * @param in_max Input range maximum
- * @param out_min Output range minimum
- * @param out_max Output range maximum
- * @return double 
- */
-double mapf(double x, double in_min, double in_max, double out_min, double out_max) {
-    const double run = in_max - in_min;
-
-    assert(in_min < in_max);
-    assert(out_min < out_max);
-    // if (run == 0) {
-    //     return -1; // Avoid division by zero
-    // }
-    
-    const double rise = out_max - out_min;
-    const double delta = x - in_min;
-    return (delta * rise) / run + out_min;
-}
 
 uint8_t positionToBrightness(int32_t position, PB_SmartKnobConfig config) {
     float mapped = mapf(position, config.min_position, config.max_position, 0, 255); // in-min, in-max, out-min, out-max

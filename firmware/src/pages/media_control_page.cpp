@@ -38,10 +38,10 @@ void MediaMenuPage::handleMenuInput(int position) {
         connectivity_task_.sendMqttMessage(data);
         break;
     }
-    // case MediaMenu::VOLUME: {
-    //     page_change_callback_(VOLUME_PAGE);
-    //     break;
-    // }
+    case MediaMenu::VOLUME: {
+        page_change_callback_(VOLUME_PAGE);
+        break;
+    }
     default:
         break;
     }

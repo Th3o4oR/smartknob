@@ -1,12 +1,15 @@
 #if SK_DISPLAY
+
 #include "display_task.h"
 #include "semaphore_guard.h"
 #include "CST816D.h"
+
 #include "views/view.h"
 #include "views/styles.h"
 #include "views/circle_menu_view.h"
 #include "views/list_menu_view.h"
 #include "views/dial_view.h"
+#include "views/slider_view.h"
 
 static const uint8_t LEDC_CHANNEL_LCD_BACKLIGHT = 0;
 
@@ -175,6 +178,7 @@ void DisplayTask::run() {
     CircleMenuView circleMenuView = CircleMenuView(screen, display_task_);
     ListMenuView listMenuView = ListMenuView(screen, display_task_);
     DialView dialView = DialView(screen, display_task_);
+    SliderView sliderView = SliderView(screen, display_task_);
 
     while(1) {
         PB_SmartKnobState state;
@@ -195,15 +199,24 @@ void DisplayTask::run() {
 
         if (config_change) {
           clear_screen();
-          if (state.config.view_config.view_type == VIEW_CIRCLE_MENU) {
-            current_view = &circleMenuView;
+          switch (state.config.view_config.view_type) {
+            case VIEW_SLIDER:
+              current_view = &sliderView;
+              break;
+            case VIEW_DIAL:
+              current_view = &dialView;
+              break;
+            case VIEW_CIRCLE_MENU:
+              current_view = &circleMenuView;
+              break;
+            case VIEW_LIST_MENU:
+              current_view = &listMenuView;
+              break;
+            default:
+              LOG_ERROR("Unknown view type: %d", state.config.view_config.view_type);
+              assert(0);
           }
-          if (state.config.view_config.view_type == VIEW_LIST_MENU) {
-            current_view = &listMenuView;
-          }
-          if (state.config.view_config.view_type == VIEW_DIAL) {
-            current_view = &dialView;
-          }
+          LOG_INFO("Switching to view %d", state.config.view_config.view_type);
           current_view->setupView(state.config);
         }
 

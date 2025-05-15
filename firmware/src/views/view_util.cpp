@@ -3,7 +3,18 @@
 #include "view_util.h"
 #include "styles.h"
 
+/**
+ * @brief Set the angle of the arc dot object
+ * 
+ * @param arc_dot The arc dot object
+ * @param angle The angle to set the dot to (in radians)
+ * @param padding Any padding to apply to the dot
+ * @param dot_size The size of the dot
+ */
 void arc_dot_set_angle(lv_obj_t *arc_dot, float angle, int padding, int dot_size) {
+    // TODO: Dot size should not be included in the padding.
+    // The dot is center aligned, so the x- and y-offsets are calculated from the center of the dot
+
     float reduced_radius   = RADIUS - padding - dot_size / 2;
     // float offset_to_center = RADIUS - dot_size / 2; // Unneeded when aligning to center
     lv_point_t arc_coords = radial_coordinates(angle, reduced_radius);
@@ -33,15 +44,6 @@ void setup_circle_elements(lv_obj_t **label_desc, lv_obj_t **arc_dot, lv_obj_t *
     lv_obj_set_style_text_font(*label_desc, &roboto_light_24, LV_PART_MAIN);
     lv_obj_set_style_text_letter_space(*label_desc, 1, LV_PART_MAIN);
 
-    *arc_dot = lv_obj_create(screen);
-    lv_obj_set_scrollbar_mode(*arc_dot, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_set_size(*arc_dot, arc_dot_size, arc_dot_size);
-    arc_dot_set_angle(*arc_dot, 0, arc_dot_menu_padding, arc_dot_size);
-    lv_obj_set_style_bg_color(*arc_dot, DOT_COLOR, 0);
-    lv_obj_set_style_radius(*arc_dot, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_border_color(*arc_dot, lv_color_white(), 0);
-    lv_obj_set_style_border_width(*arc_dot, 2, 0);
-
     *arc = lv_arc_create(screen);
     lv_obj_set_size(*arc, TFT_WIDTH, TFT_HEIGHT);
     lv_obj_align(*arc, LV_ALIGN_CENTER, 0, 0);
@@ -51,6 +53,15 @@ void setup_circle_elements(lv_obj_t **label_desc, lv_obj_t **arc_dot, lv_obj_t *
     lv_obj_set_style_arc_color(*arc, DOT_COLOR, LV_PART_INDICATOR);
     lv_obj_set_style_arc_width(*arc, 5, LV_PART_INDICATOR);
     lv_arc_set_mode(*arc, LV_ARC_MODE_REVERSE);
+
+    *arc_dot = lv_obj_create(screen);
+    lv_obj_set_scrollbar_mode(*arc_dot, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_size(*arc_dot, arc_dot_size, arc_dot_size);
+    arc_dot_set_angle(*arc_dot, 0, arc_dot_menu_padding, arc_dot_size);
+    lv_obj_set_style_bg_color(*arc_dot, DOT_COLOR, 0);
+    lv_obj_set_style_radius(*arc_dot, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_border_color(*arc_dot, lv_color_white(), 0);
+    lv_obj_set_style_border_width(*arc_dot, 2, 0);
 }
 
 /**

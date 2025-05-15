@@ -32,11 +32,18 @@ struct BrightnessData { int brightness; };
 struct PlayPauseData { bool paused; };
 struct SkipData { bool forward; };
 
+enum class MQTTSubscriptionType {
+    LIGHTING,
+    PLAY_PAUSE,
+    SKIP,
+    VOLUME,
+};
+
 using MQTTPayload = std::variant<
-    ColorData,
+    // ColorData,
     BrightnessData,
     PlayPauseData,
-    SkipData,
+    SkipData
 >;
 
 static constexpr uint32_t WIFI_SCAN_INTERVAL_MS       = 60 * 1000;
@@ -48,14 +55,20 @@ class ConnectivityTask : public Task<ConnectivityTask> {
     friend class Task<ConnectivityTask>; // Allow base Task to invoke protected run()
 
   public:
-    ConnectivityTask(const uint8_t task_core, const uint32_t stack_depth);
-    ~ConnectivityTask();
+    ConnectivityTask(const uint8_t task_core, const uint32_t stack_depth)
+        : Task("Connectivity", stack_depth, 1, task_core)
+        , transmit_queue_(xQueueCreate(TRANSMISSION_QUEUE_SIZE, sizeof(MQTTPayload)))
+    {
+        assert(transmit_queue_ != NULL);
+    }
+    ~ConnectivityTask() {
+        vQueueDelete(transmit_queue_);
+    }
 
     void sendMqttMessage(MQTTPayload message);
     void receiveFromSubscriptions();
 
-    template <typename T>
-    void registerListener(QueueHandle_t queue);
+    void registerListener(MQTTSubscriptionType subscription, QueueHandle_t queue);
 
   protected:
     void run();
@@ -64,12 +77,11 @@ class ConnectivityTask : public Task<ConnectivityTask> {
     uint32_t last_wifi_scan_               = 0;
     uint32_t last_mqtt_connection_attempt_ = 0;
 
-    std::unordered_map<std::type_index, std::vector<QueueHandle_t>> listeners_;
+    std::unordered_map<MQTTSubscriptionType, std::vector<QueueHandle_t>> listeners_;
     
     QueueHandle_t transmit_queue_;
 
-    template <typename T>
-    void dispatchToListeners(const T& data);
+    void dispatchToListeners(const MQTTPayload& data);
     
     bool initWiFi();
     bool connectToMqttBroker();

@@ -26,27 +26,6 @@ void DialView::setupView(PB_SmartKnobConfig config) {
     setup_dial_elements(config);
 }
 
-/**
- * @brief Clamps a value between a minimum and maximum value
- * @note From: https://stackoverflow.com/a/16659263
- */
-float clamp(float min, float max, float value) {
-    const float t = value < min ? min : value;
-    return t > max ? max : t;
-}
-
-/**
- * @brief Linear interpolation between two values
- * @note From: https://stackoverflow.com/a/4353537
- *
- * @param a The initial value
- * @param b The final value
- * @param f The fraction between the two values
- */
-float lerp(float a, float b, float f) {
-    return a * (1.0 - f) + (b * f);
-}
-
 void DialView::updateView(PB_SmartKnobState state) {
     float left_bound            = PI/2; // Up
     float right_bound           = PI/2; // Up
@@ -70,7 +49,7 @@ void DialView::updateView(PB_SmartKnobState state) {
 
     if (num_positions > 1) {
         int32_t target_fill_height = 255 - state.current_position * 255 / (num_positions - 1);
-        animated_fill_height       = (config_changed) ? target_fill_height : lerp(animated_fill_height, target_fill_height, 0.25);
+        animated_fill_height       = (config_changed) ? target_fill_height : lerp_approx(animated_fill_height, target_fill_height, 0.25);
         set_screen_gradient((int32_t)roundf(animated_fill_height));
     } else {
         set_screen_gradient(255);
@@ -110,7 +89,7 @@ void DialView::updateView(PB_SmartKnobState state) {
     float raw_angle      = left_bound - (state.current_position - state.config.min_position) * state.config.position_width_radians;
     float adjusted_angle = raw_angle - adjusted_sub_position;
 
-    animated_dot_angle = (config_changed) ? adjusted_angle : lerp(animated_dot_angle, adjusted_angle, 0.35);
+    animated_dot_angle = (config_changed) ? adjusted_angle : lerp_approx(animated_dot_angle, adjusted_angle, 0.35);
     if (fabsf(adjusted_angle - animated_dot_angle) < 0.01) {
         animated_dot_angle = adjusted_angle;
     }

@@ -46,7 +46,7 @@ class MediaMenuPage : public Page {
                 { "Previous",   ICON_SKIP_PREV  },
                 { "Play/Pause", ICON_PLAY_PAUSE },
                 { "Next",       ICON_SKIP_NEXT  },
-                { "Volume",     ICON_VOLUME     },
+                { "Volume",     ICON_VOLUME_UP  },
             }
         };
 

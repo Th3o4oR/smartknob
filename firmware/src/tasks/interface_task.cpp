@@ -46,6 +46,7 @@ InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth
         more_menu_page_(),
         lights_page_(connectivity_task_),
         media_menu_page_(connectivity_task_),
+        volume_page_(connectivity_task_),
         settings_page_([this] () {
             motor_task_.runCalibration();
         }),
@@ -108,7 +109,7 @@ void InterfaceTask::run() {
     #endif // SK_ALS
 
     motor_task_.addListener(knob_state_queue_);
-    connectivity_task_.registerListener<BrightnessData>(lights_page_.getIncomingBrightnessQueue());
+    connectivity_task_.registerListener(MQTTSubscriptionType::LIGHTING, lights_page_.getIncomingBrightnessQueue());
     display_task_->setListener(user_input_queue_);
 
     plaintext_protocol_.init(
@@ -176,6 +177,7 @@ void InterfaceTask::run() {
         { MAIN_MENU_PAGE,  &main_menu_page_  },
         { SETTINGS_PAGE,   &settings_page_   },
         { MEDIA_MENU_PAGE, &media_menu_page_ },
+        { VOLUME_PAGE,     &volume_page_     },
         { MORE_PAGE,       &more_menu_page_  },
         { DEMO_PAGE,       &demo_page_       },
         { LIGHTS_PAGE,     &lights_page_     }
@@ -224,6 +226,9 @@ void InterfaceTask::run() {
 
     // Assign special callbacks to some pages
     lights_page_.setConfigChangeCallback([this] (PB_SmartKnobConfig *config) {
+        applyConfig(*config, false);
+    });
+    volume_page_.setConfigChangeCallback([this] (PB_SmartKnobConfig *config) {
         applyConfig(*config, false);
     });
 
@@ -323,7 +328,7 @@ void InterfaceTask::updateHardware() {
             
             if (configuration_loaded_ && configuration_value_.has_strain && strain_calibration_step_ == 0) {
                 // TODO: calibrate and track (long term moving average) idle point (lower)
-                press_value_unit = lerp(strain_reading_, configuration_value_.strain.idle_value, configuration_value_.strain.idle_value + configuration_value_.strain.press_delta, 0, 1);
+                press_value_unit = mapf(strain_reading_, configuration_value_.strain.idle_value, configuration_value_.strain.idle_value + configuration_value_.strain.press_delta, 0, 1);
 
                 // Ignore readings that are way out of expected bounds
                 if (-1 < press_value_unit && press_value_unit < 2) {

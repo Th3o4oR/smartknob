@@ -14,6 +14,7 @@ typedef enum {
     MORE_PAGE,
     DEMO_PAGE,
     MEDIA_MENU_PAGE,
+    VOLUME_PAGE,
 } page_t;
 
 /**

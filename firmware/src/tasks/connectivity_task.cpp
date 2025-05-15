@@ -21,13 +21,6 @@ struct overload : Ts... {
 template<class... Ts>
 overload(Ts...) -> overload<Ts...>;
 
-ConnectivityTask::ConnectivityTask(const uint8_t task_core, const uint32_t stack_depth)
-    : Task("Connectivity", stack_depth, 1, task_core) {
-    transmit_queue_ = xQueueCreate(TRANSMISSION_QUEUE_SIZE, sizeof(MQTTPayload));
-    assert(transmit_queue_ != NULL);
-}
-
-ConnectivityTask::~ConnectivityTask() {}
 
 void sendMQTTKnobDiscoveryMsg() {
     JsonDocument payload;
@@ -276,23 +269,33 @@ bool ConnectivityTask::connectToMqttBroker() {
 /**
  * @brief Register a listener for a specific type of data.
  * 
- * @tparam T The type of data to listen for.
+ * @param subscription The type of data to listen for.
  * @param queue The queue handle to register as a listener.
  */
-template <typename T>
-void ConnectivityTask::registerListener(QueueHandle_t queue) {
-    listeners_[typeid(T)].push_back(queue);
+void ConnectivityTask::registerListener(MQTTSubscriptionType subscription, QueueHandle_t queue) {
+    listeners_[subscription].push_back(queue);
 }
 
 /**
  * @brief Dispatch data to all listeners of the specified type.
  * 
- * @tparam T The type of data to dispatch.
  * @param data The data to dispatch.
  */
-template <typename T>
-void ConnectivityTask::dispatchToListeners(const T& data) {
-    auto it = listeners_.find(std::type_index(typeid(T)));
+void ConnectivityTask::dispatchToListeners(const MQTTPayload& data) {
+    // Match the type of data to the subscription type
+    MQTTSubscriptionType subscription;
+    auto visitor = overload {
+        [&](const BrightnessData&) { subscription = MQTTSubscriptionType::LIGHTING; },
+        [&](const PlayPauseData&) { subscription = MQTTSubscriptionType::PLAY_PAUSE; },
+        [&](const SkipData&) { subscription = MQTTSubscriptionType::SKIP; },
+        [&](auto&) {
+            LOG_ERROR("Unknown data type");
+            return;
+        }
+    };
+    std::visit(visitor, data);
+    
+    auto it = listeners_.find(subscription);
     if (it != listeners_.end()) {
         for (auto& queue : it->second) {
             xQueueSend(queue, &data, portMAX_DELAY);

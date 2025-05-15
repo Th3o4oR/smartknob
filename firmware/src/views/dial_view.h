@@ -1,6 +1,7 @@
 #pragma once
 
 #include "view.h"
+#include "util.h"
 #include "tasks/display_task.h"
 #include "proto_gen/smartknob.pb.h"
 

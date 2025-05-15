@@ -20,6 +20,7 @@
 #include "pages/demo_page.h"
 #include "pages/settings_page.h"
 #include "pages/media_control_page.h"
+#include "pages/volume_page.h"
 
 #ifndef SK_FORCE_UART_STREAM
     #define SK_FORCE_UART_STREAM 0
@@ -76,12 +77,13 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
         SerialProtocolPlaintext plaintext_protocol_;
         SerialProtocolProtobuf proto_protocol_;
 
-        MainMenuPage main_menu_page_;
-        MorePage more_menu_page_;
-        LightsPage lights_page_;
-        DemoPage demo_page_;
-        SettingsPage settings_page_;
+        MainMenuPage  main_menu_page_;
+        MorePage      more_menu_page_;
+        LightsPage    lights_page_;
+        DemoPage      demo_page_;
+        SettingsPage  settings_page_;
         MediaMenuPage media_menu_page_;
+        VolumePage    volume_page_;
 
         userInput_t user_input_;
 
