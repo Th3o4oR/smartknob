@@ -8,9 +8,7 @@ void SettingsPage::handleMenuInput(int position) {
     auto menu_item = static_cast<SettingsMenu>(position); // Convert the position to the corresponding menu item
     switch (menu_item) {
         case SettingsMenu::BACK: {
-            if (page_change_callback_) {
-                page_change_callback_(MAIN_MENU_PAGE);
-            }
+            page_change_callback_(PageType::MAIN_MENU_PAGE);
             break;
         }
         case SettingsMenu::CALIBRATE_MOTOR: {
@@ -25,9 +23,7 @@ void SettingsPage::handleMenuInput(int position) {
 void SettingsPage::handleUserInput(input_t input, int input_data, PB_SmartKnobState state) {    
     switch (input) {
         case INPUT_BACK: {
-            if (page_change_callback_) {
-                page_change_callback_(MAIN_MENU_PAGE);
-            }
+            page_change_callback_(PageType::MAIN_MENU_PAGE);
             break;
         }
         case INPUT_FORWARD: {

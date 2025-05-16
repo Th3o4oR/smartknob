@@ -35,7 +35,7 @@ void LightsPage::checkForBrightnessUpdates(PB_SmartKnobState &state, PB_SmartKno
     PB_SmartKnobConfig* page_config = getPageConfig();
     new_position = brightnessToPosition(brightness, *page_config);
     page_config->initial_position = new_position; // Set the initial position, so when the config is applied, the motor task will set this as the current position
-    config_change_callback_(page_config);
+    config_change_callback_(*page_config);
     LOG_INFO("LIGHTS: Updating position to match received brightness");
 
     state.current_position = new_position;
@@ -67,16 +67,12 @@ void LightsPage::handleUserInput(input_t input, int input_data, PB_SmartKnobStat
     {
     case INPUT_BACK:
     {
-        if (page_change_callback_) {
-            page_change_callback_(MAIN_MENU_PAGE);
-        }
+        page_change_callback_(PageType::MAIN_MENU_PAGE);
         break;
     }
     case INPUT_FORWARD:
     {
-        if (page_change_callback_) {
-            page_change_callback_(MAIN_MENU_PAGE);
-        }
+        page_change_callback_(PageType::MAIN_MENU_PAGE);
         break;
     }    
     default:

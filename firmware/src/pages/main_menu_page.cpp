@@ -8,27 +8,19 @@ void MainMenuPage::handleMenuInput(int position) {
     auto menu_item = static_cast<MainMenu>(position); // Convert the position to the corresponding menu item
     switch (menu_item) {
         case MainMenu::BEDROOM_LIGHTS: {
-            if (page_change_callback_) {
-                page_change_callback_(LIGHTS_PAGE);
-            }
+            page_change_callback_(PageType::LIGHTS_PAGE);
             break;
         }
         case MainMenu::SETTINGS: {
-            if (page_change_callback_) {
-                page_change_callback_(SETTINGS_PAGE);
-            }
+            page_change_callback_(PageType::SETTINGS_PAGE);
             break;
         }
         case MainMenu::MORE: {
-            if (page_change_callback_) {
-                page_change_callback_(MORE_PAGE);
-            }
+            page_change_callback_(PageType::MORE_PAGE);
             break;
         }
         case MainMenu::MEDIA: {
-            if (page_change_callback_) {
-                page_change_callback_(MEDIA_MENU_PAGE);
-            }
+            page_change_callback_(PageType::MEDIA_MENU_PAGE);
             break;
         }
         default:

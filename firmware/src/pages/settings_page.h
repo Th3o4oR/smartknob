@@ -1,8 +1,10 @@
+#pragma once
 
 #include "page.h"
 #include "interface_callbacks.h"
-#include "tasks/motor_task.h"
 #include "views/view.h"
+
+#include "tasks/motor_task.h"
 
 enum class SettingsMenu {
     BACK = 0,
@@ -12,7 +14,13 @@ enum class SettingsMenu {
 
 class SettingsPage: public Page {
     public:
-        SettingsPage(MotorCalibrationCallback motor_calibration_callback) : Page(), motor_calibration_callback_(motor_calibration_callback) {}
+        SettingsPage(PageChangeCallback page_change_callback
+                   , ConfigCallback config_change_callback
+                   , Logger* logger
+                   , MotorCalibrationCallback motor_calibration_callback)
+            : Page(page_change_callback, config_change_callback, logger)
+            , motor_calibration_callback_(motor_calibration_callback)
+            {}
 
         ~SettingsPage(){}
 

@@ -3,6 +3,7 @@
 #include "page.h"
 #include "views/view.h"
 #include "views/circle_menu_view.h"
+
 #include "tasks/motor_task.h"
 #include "tasks/connectivity_task.h"
 
@@ -20,8 +21,11 @@ enum class MediaMenu {
 
 class MediaMenuPage : public Page {
     public:
-        MediaMenuPage(ConnectivityTask &connectivity_task)
-            : Page()
+        MediaMenuPage(PageChangeCallback page_change_callback
+                    , ConfigCallback config_change_callback
+                    , Logger* logger
+                    , ConnectivityTask &connectivity_task)
+            : Page(page_change_callback, config_change_callback, logger)
             , connectivity_task_(connectivity_task)
             {}
         ~MediaMenuPage() {}

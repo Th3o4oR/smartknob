@@ -3,6 +3,7 @@
 #include "page.h"
 #include "views/view.h"
 #include "views/circle_menu_view.h"
+
 #include "tasks/motor_task.h"
 
 // Needs to match the entries defined below
@@ -21,7 +22,11 @@ enum class MainMenu {
 
 class MainMenuPage : public Page {
     public:
-        MainMenuPage() : Page() {}
+        MainMenuPage(PageChangeCallback page_change_callback
+                   , ConfigCallback config_change_callback
+                   , Logger* logger)
+            : Page(page_change_callback, config_change_callback, logger)
+            {}
 
         ~MainMenuPage(){}
 

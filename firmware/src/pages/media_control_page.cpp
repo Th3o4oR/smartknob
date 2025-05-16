@@ -11,7 +11,7 @@ void MediaMenuPage::handleMenuInput(int position) {
     auto menu_item = static_cast<MediaMenu>(position); // Convert the position to the corresponding menu item
     switch (menu_item) {
     case MediaMenu::BACK: {
-        page_change_callback_(MAIN_MENU_PAGE);
+        page_change_callback_(PageType::MAIN_MENU_PAGE);
         break;
     }
     case MediaMenu::PLAY_PAUSE: {
@@ -39,7 +39,7 @@ void MediaMenuPage::handleMenuInput(int position) {
         break;
     }
     case MediaMenu::VOLUME: {
-        page_change_callback_(VOLUME_PAGE);
+        page_change_callback_(PageType::VOLUME_PAGE);
         break;
     }
     default:

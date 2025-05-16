@@ -37,6 +37,7 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
 
         void log(const std::string& msg) override;
         void setConfiguration(Configuration* configuration);
+        void changePage(PageType page);
         uint8_t incrementPositionNonce();
 
     protected:
@@ -77,13 +78,8 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
         SerialProtocolPlaintext plaintext_protocol_;
         SerialProtocolProtobuf proto_protocol_;
 
-        MainMenuPage  main_menu_page_;
-        MorePage      more_menu_page_;
-        LightsPage    lights_page_;
-        DemoPage      demo_page_;
-        SettingsPage  settings_page_;
-        MediaMenuPage media_menu_page_;
-        VolumePage    volume_page_;
+        std::map<PageType, std::unique_ptr<Page>> page_map_;
+        Page* current_page_ = nullptr;
 
         userInput_t user_input_;
 

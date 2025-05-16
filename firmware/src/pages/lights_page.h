@@ -3,8 +3,10 @@
 #include "page.h"
 #include "util.h"
 #include "views/view.h"
+
 #include "tasks/motor_task.h"
 #include "tasks/connectivity_task.h"
+#include "tasks/interface_task.h"
 
 /**
  * @brief Callback to handle page changes
@@ -19,12 +21,17 @@ static constexpr uint32_t INCOMING_BRIGHTNESS_QUEUE_SIZE = 1; // Size of the inc
 
 class LightsPage : public Page {
     public:
-        LightsPage(ConnectivityTask &connectivity_task)
-            : Page()
+        LightsPage(PageChangeCallback page_change_callback
+                 , ConfigCallback config_change_callback
+                 , Logger* logger
+                 , ConnectivityTask &connectivity_task)
+            : Page(page_change_callback, config_change_callback, logger)
             , connectivity_task_(connectivity_task)
-            , incoming_brightness_queue_(xQueueCreate(INCOMING_BRIGHTNESS_QUEUE_SIZE, sizeof(BrightnessData)))
         {
+            incoming_brightness_queue_ = xQueueCreate(INCOMING_BRIGHTNESS_QUEUE_SIZE, sizeof(BrightnessData));
             assert(incoming_brightness_queue_ != NULL);
+
+            connectivity_task_.registerListener(MQTTSubscriptionType::LIGHTING, incoming_brightness_queue_);
         }
 
         ~LightsPage() {
@@ -37,14 +44,8 @@ class LightsPage : public Page {
 
         QueueHandle_t getIncomingBrightnessQueue() { return incoming_brightness_queue_; }
 
-        void setConfigChangeCallback(ConfigChangeCallback callback) {
-            config_change_callback_ = callback;
-        }
-
     private:
         ConnectivityTask& connectivity_task_;
-
-        ConfigChangeCallback config_change_callback_;
 
         QueueHandle_t incoming_brightness_queue_;
 

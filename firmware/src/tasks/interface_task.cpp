@@ -30,35 +30,17 @@ HX711 scale;
 Adafruit_VEML7700 veml = Adafruit_VEML7700();
 #endif // SK_ALS
 
-InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth, MotorTask& motor_task, DisplayTask* display_task, ConnectivityTask& connectivity_task) : 
-        Task("Interface", stack_depth, 1, task_core),
-        stream_(),
-        motor_task_(motor_task),
-        display_task_(display_task),
-        connectivity_task_(connectivity_task),
-        plaintext_protocol_(stream_, [this] () {
-            motor_task_.runCalibration();
-        }),
-        proto_protocol_(stream_, [this] (PB_SmartKnobConfig& config) {
-            applyConfig(config, true);
-        }),
-        main_menu_page_(),
-        more_menu_page_(),
-        lights_page_(connectivity_task_),
-        media_menu_page_(connectivity_task_),
-        volume_page_(connectivity_task_),
-        settings_page_([this] () {
-            motor_task_.runCalibration();
-        }),
-        demo_page_([this] (PB_SmartKnobConfig& config) {
-            applyConfig(config, false);
-        })
-        {
-    #if SK_DISPLAY
-        assert(display_task != nullptr);
-    #endif // SK_DISPLAY
-
-    lights_page_.setLogger(this);
+InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth, MotorTask &motor_task, DisplayTask *display_task, ConnectivityTask &connectivity_task)
+    : Task("Interface", stack_depth, 1, task_core)
+    , stream_()
+    , motor_task_(motor_task)
+    , display_task_(display_task)
+    , connectivity_task_(connectivity_task)
+    , plaintext_protocol_(stream_, [this]() { motor_task_.runCalibration(); })
+    , proto_protocol_(stream_, [this](PB_SmartKnobConfig &config) { applyConfig(config, true); }) {
+#if SK_DISPLAY
+    assert(display_task != nullptr);
+#endif // SK_DISPLAY
 
     log_queue_ = xQueueCreate(10, sizeof(std::string *));
     assert(log_queue_ != NULL);
@@ -75,165 +57,122 @@ InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth
     i2c_mutex_ = xSemaphoreCreateMutex();
     assert(i2c_mutex_ != NULL);
     i2c_mutex = &i2c_mutex_;
-
     display_task_->setI2CMutex(i2c_mutex);
+
+    // Create callbacks for page changes
+    PageChangeCallback page_change_callback = [this](PageType page) {
+        changePage(page);
+    };
+    ConfigCallback config_change_callback = [this](PB_SmartKnobConfig &config) {
+        applyConfig(config, false);
+    };
+    MotorCalibrationCallback motor_calibration_callback = [this]() {
+        motor_task_.runCalibration();
+    };
+
+    page_map_[PageType::MAIN_MENU_PAGE]  = std::make_unique<MainMenuPage>(page_change_callback,  config_change_callback, this);
+    page_map_[PageType::SETTINGS_PAGE]   = std::make_unique<SettingsPage>(page_change_callback,  config_change_callback, this, motor_calibration_callback);
+    page_map_[PageType::MEDIA_MENU_PAGE] = std::make_unique<MediaMenuPage>(page_change_callback, config_change_callback, this, connectivity_task_);
+    page_map_[PageType::VOLUME_PAGE]     = std::make_unique<VolumePage>(page_change_callback,    config_change_callback, this, connectivity_task_);
+    page_map_[PageType::MORE_PAGE]       = std::make_unique<MorePage>(page_change_callback,      config_change_callback, this);
+    page_map_[PageType::DEMO_PAGE]       = std::make_unique<DemoPage>(page_change_callback,      config_change_callback, this);
+    page_map_[PageType::LIGHTS_PAGE]     = std::make_unique<LightsPage>(page_change_callback,    config_change_callback, this, connectivity_task_);
+    
+    motor_task_.addListener(knob_state_queue_);
+    display_task_->setListener(user_input_queue_);
 }
 
 InterfaceTask::~InterfaceTask() {
     vSemaphoreDelete(mutex_);
+    vQueueDelete(log_queue_);
+    vQueueDelete(knob_state_queue_);
+    vQueueDelete(user_input_queue_);
+    vSemaphoreDelete(i2c_mutex_);
 }
 
 void InterfaceTask::run() {
     stream_.begin();
-    
-    #if SK_LEDS
-        FastLED.addLeds<SK6812, PIN_LED_DATA, GRB>(leds, NUM_LEDS);
-    #endif // SK_LEDS
 
-    #if SK_ALS && PIN_SDA >= 0 && PIN_SCL >= 0
-        Wire.begin(PIN_SDA, PIN_SCL);
-        Wire.setClock(400000);
-    #endif // SK_ALS
+#if SK_LEDS
+    FastLED.addLeds<SK6812, PIN_LED_DATA, GRB>(leds, NUM_LEDS);
+#endif // SK_LEDS
 
-    #if SK_STRAIN
-        scale.begin(PIN_STRAIN_DO, PIN_STRAIN_SCK);
-    #endif // SK_STRAIN
+#if SK_ALS && PIN_SDA >= 0 && PIN_SCL >= 0
+    Wire.begin(PIN_SDA, PIN_SCL);
+    Wire.setClock(400000);
+#endif // SK_ALS
 
-    #if SK_ALS
-        if (veml.begin()) {
-            veml.setGain(VEML7700_GAIN_2);
-            veml.setIntegrationTime(VEML7700_IT_400MS);
-        } else {
-            LOG_WARN("ALS sensor not found!");
-        }
-    #endif // SK_ALS
+#if SK_STRAIN
+    scale.begin(PIN_STRAIN_DO, PIN_STRAIN_SCK);
+#endif // SK_STRAIN
 
-    motor_task_.addListener(knob_state_queue_);
-    connectivity_task_.registerListener(MQTTSubscriptionType::LIGHTING, lights_page_.getIncomingBrightnessQueue());
-    display_task_->setListener(user_input_queue_);
+#if SK_ALS
+    if (veml.begin()) {
+        veml.setGain(VEML7700_GAIN_2);
+        veml.setIntegrationTime(VEML7700_IT_400MS);
+    } else {
+        LOG_WARN("ALS sensor not found!");
+    }
+#endif // SK_ALS
 
     plaintext_protocol_.init(
-        [this] () {
-            setUserInput(
-                {
-                    .inputType = INPUT_FORWARD,
-                    .inputData = NULL
-                },
-                true
-            );
-        },
-        [this] () {
-            if (!configuration_loaded_) {
-                return;
-            }
-            if (strain_calibration_step_ == 0) {
-                LOG_INFO("Strain calibration step 0: Don't touch the knob, then press 'S' again");
-                strain_calibration_step_ = 1;
-            } else if (strain_calibration_step_ == 1) {
-                configuration_value_.strain.idle_value = strain_reading_;
-                LOG_INFO("  idle_value=%d", configuration_value_.strain.idle_value);
-                LOG_INFO("Strain calibration step 1: Push and hold down the knob with medium pressure, and press 'S' again");
-                strain_calibration_step_ = 2;
-            } else if (strain_calibration_step_ == 2) {
-                configuration_value_.strain.press_delta = strain_reading_ - configuration_value_.strain.idle_value;
-                configuration_value_.has_strain = true;
-                LOG_INFO("  press_delta=%d", configuration_value_.strain.press_delta);
-                LOG_INFO("Strain calibration complete! Saving...");
-                strain_calibration_step_ = 0;
-                if (configuration_->setStrainCalibrationAndSave(configuration_value_.strain)) {
-                    LOG_SUCCESS("  Saved!");
-                } else {
-                    LOG_ERROR("  FAILED to save config!");
-                }
-            }
-        }
+      [this]() {
+          setUserInput(
+            {.inputType = INPUT_FORWARD,
+             .inputData = NULL},
+            true
+          );
+      },
+      [this]() {
+          if (!configuration_loaded_) {
+              return;
+          }
+          if (strain_calibration_step_ == 0) {
+              LOG_INFO("Strain calibration step 0: Don't touch the knob, then press 'S' again");
+              strain_calibration_step_ = 1;
+          } else if (strain_calibration_step_ == 1) {
+              configuration_value_.strain.idle_value = strain_reading_;
+              LOG_INFO("  idle_value=%d", configuration_value_.strain.idle_value);
+              LOG_INFO("Strain calibration step 1: Push and hold down the knob with medium pressure, and press 'S' again");
+              strain_calibration_step_ = 2;
+          } else if (strain_calibration_step_ == 2) {
+              configuration_value_.strain.press_delta = strain_reading_ - configuration_value_.strain.idle_value;
+              configuration_value_.has_strain         = true;
+              LOG_INFO("  press_delta=%d", configuration_value_.strain.press_delta);
+              LOG_INFO("Strain calibration complete! Saving...");
+              strain_calibration_step_ = 0;
+              if (configuration_->setStrainCalibrationAndSave(configuration_value_.strain)) {
+                  LOG_SUCCESS("  Saved!");
+              } else {
+                  LOG_ERROR("  FAILED to save config!");
+              }
+          }
+      }
     );
 
-    SerialProtocol* current_protocol;
+    SerialProtocol *current_protocol;
     // Start in legacy protocol mode
     current_protocol_ = &plaintext_protocol_;
 
-    ProtocolChangeCallback protocol_change_callback = [this] (uint8_t protocol) {
+    ProtocolChangeCallback protocol_change_callback = [this](uint8_t protocol) {
         switch (protocol) {
-            case SERIAL_PROTOCOL_LEGACY:
-                current_protocol_ = &plaintext_protocol_;
-                break;
-            case SERIAL_PROTOCOL_PROTO:
-                current_protocol_ = &proto_protocol_;
-                break;
-            default:
-                LOG_ERROR("Unknown protocol requested");
-                break;
+        case SERIAL_PROTOCOL_LEGACY:
+            current_protocol_ = &plaintext_protocol_;
+            break;
+        case SERIAL_PROTOCOL_PROTO:
+            current_protocol_ = &proto_protocol_;
+            break;
+        default:
+            LOG_ERROR("Unknown protocol requested");
+            break;
         }
     };
 
     plaintext_protocol_.setProtocolChangeCallback(protocol_change_callback);
     proto_protocol_.setProtocolChangeCallback(protocol_change_callback);
 
-    // Create a lookup table for pages
-    // Generate lambda to handle page changes
-    // Assign callback to all pages
-    std::map<page_t, Page*> page_map = {
-        { MAIN_MENU_PAGE,  &main_menu_page_  },
-        { SETTINGS_PAGE,   &settings_page_   },
-        { MEDIA_MENU_PAGE, &media_menu_page_ },
-        { VOLUME_PAGE,     &volume_page_     },
-        { MORE_PAGE,       &more_menu_page_  },
-        { DEMO_PAGE,       &demo_page_       },
-        { LIGHTS_PAGE,     &lights_page_     }
-    };
-    Page* current_page = nullptr;
-
-    /**
-     * @brief Callback to handle page changes.
-     * 
-     * Used to set relevant parameters on the outgoing and incoming pages,
-     * like remembering the last position.
-     * 
-     * @param page The requested page
-     */
-    PageChangeCallback page_change_callback = [this, &current_page, &page_map] (page_t page) {
-        auto it = page_map.find(page);
-        if (it == page_map.end()) {
-            LOG_ERROR("Unknown page requested");
-            return;
-        }
-
-        // After starting up, current_page will be null
-        if (current_page != nullptr) {
-            auto current_config = current_page->getPageConfig();
-            current_config->initial_position = latest_state_.current_position;
-        }
-
-        // Update current page to point to the new page
-        current_page = it->second;
-        auto config = current_page->getPageConfig();
-        applyConfig(*config, false);
-        
-        auto page_name = "Unnamed";
-        if (config->has_view_config) {
-            page_name = config->view_config.description;
-        }
-        LOG_INFO("Switching to page [%s]", page_name);
-    };
-
-    // Assign page change callback to all pages
-    // std::map<page_t, Page*>::iterator it; // Could use structured bindings if using C++17
-    for (auto it = page_map.begin(); it != page_map.end(); it++) {
-        Page *page = it->second;
-        page->setPageChangeCallback(page_change_callback);
-    }
-
-    // Assign special callbacks to some pages
-    lights_page_.setConfigChangeCallback([this] (PB_SmartKnobConfig *config) {
-        applyConfig(*config, false);
-    });
-    volume_page_.setConfigChangeCallback([this] (PB_SmartKnobConfig *config) {
-        applyConfig(*config, false);
-    });
-
     // Set initial page
-    page_change_callback(MAIN_MENU_PAGE);
+    changePage(PageType::MAIN_MENU_PAGE);
 
     // Interface loop:
     while (1) {
@@ -244,7 +183,7 @@ void InterfaceTask::run() {
             if (new_state.config.position_nonce == position_nonce_) {
                 latest_state_ = new_state;
                 publishState();
-                current_page->handleState(latest_state_);
+                current_page_->handleState(latest_state_);
             } else {
                 LOG_WARN("Discarding outdated state message (expected nonce %d, got %d)", position_nonce_, new_state.config.position_nonce);
             }
@@ -258,12 +197,12 @@ void InterfaceTask::run() {
         }
 
         if (user_input_.inputType > -1) {
-            current_page->handleUserInput(user_input_.inputType, user_input_.inputData, latest_state_);
-            user_input_.inputType = (input_t) -1;
+            current_page_->handleUserInput(user_input_.inputType, user_input_.inputData, latest_state_);
+            user_input_.inputType = (input_t)-1;
             user_input_.inputData = NULL;
         }
 
-        std::string* log_string;
+        std::string *log_string;
         while (xQueueReceive(log_queue_, &log_string, 0) == pdTRUE) {
             current_protocol_->log(log_string->c_str());
             delete log_string;
@@ -274,7 +213,7 @@ void InterfaceTask::run() {
         if (!configuration_loaded_) {
             SemaphoreGuard lock(mutex_);
             if (configuration_ != nullptr) {
-                configuration_value_ = configuration_->get();
+                configuration_value_  = configuration_->get();
                 configuration_loaded_ = true;
             }
         }
@@ -290,9 +229,9 @@ void InterfaceTask::setUserInput(userInput_t user_input, bool playHapticts) {
     }
 }
 
-void InterfaceTask::log(const std::string& msg) {
+void InterfaceTask::log(const std::string &msg) {
     // Allocate a string for the duration it's in the queue; it is free'd by the queue consumer
-    std::string* msg_str = new std::string(msg);
+    std::string *msg_str = new std::string(msg);
 
     // Put string in queue (or drop if full to avoid blocking)
     xQueueSendToBack(log_queue_, &msg_str, 0);
@@ -302,99 +241,97 @@ void InterfaceTask::updateHardware() {
     // How far button is pressed, in range [0, 1]
     float press_value_unit = 0;
 
-    #if SK_ALS
-        SemaphoreGuard lock(i2c_mutex_);
-        const float LUX_ALPHA = 0.005;
-        static float lux_avg;
-        float lux = veml.readLux();
-        lux_avg = lux * LUX_ALPHA + lux_avg * (1 - LUX_ALPHA);
-        // static uint32_t last_als;
-        // if (millis() - last_als > 1000 && strain_calibration_step_ == 0) {
-        //     LOG_INFO("millilux: %.2f", lux*1000);
-        //     last_als = millis();
-        // }
-    #endif // SK_ALS
+#if SK_ALS
+    SemaphoreGuard lock(i2c_mutex_);
+    const float    LUX_ALPHA = 0.005;
+    static float   lux_avg;
+    float          lux = veml.readLux();
+    lux_avg            = lux * LUX_ALPHA + lux_avg * (1 - LUX_ALPHA);
+    // static uint32_t last_als;
+    // if (millis() - last_als > 1000 && strain_calibration_step_ == 0) {
+    //     LOG_INFO("millilux: %.2f", lux*1000);
+    //     last_als = millis();
+    // }
+#endif // SK_ALS
 
     static bool pressed;
-    #if SK_STRAIN
-        if (scale.wait_ready_timeout(100)) {
-            strain_reading_ = scale.read();
+#if SK_STRAIN
+    if (scale.wait_ready_timeout(100)) {
+        strain_reading_ = scale.read();
 
-            // static uint32_t last_reading_display;
-            // if (millis() - last_reading_display > 100 && strain_calibration_step_ == 0) {
-            //     LOG_INFO("HX711 reading: %d", strain_reading_);
-            //     last_reading_display = millis();
-            // }
-            
-            if (configuration_loaded_ && configuration_value_.has_strain && strain_calibration_step_ == 0) {
-                // TODO: calibrate and track (long term moving average) idle point (lower)
-                press_value_unit = mapf(strain_reading_, configuration_value_.strain.idle_value, configuration_value_.strain.idle_value + configuration_value_.strain.press_delta, 0, 1);
+        // static uint32_t last_reading_display;
+        // if (millis() - last_reading_display > 100 && strain_calibration_step_ == 0) {
+        //     LOG_INFO("HX711 reading: %d", strain_reading_);
+        //     last_reading_display = millis();
+        // }
 
-                // Ignore readings that are way out of expected bounds
-                if (-1 < press_value_unit && press_value_unit < 2) {
-                    static uint8_t press_readings;
-                    if (!pressed && press_value_unit > 1) {
-                        press_readings++;
-                        if (press_readings > 2) {
-                            motor_task_.playHaptic(true);
-                            pressed = true;
-                            press_count_++;
-                            publishState();
-                            setUserInput(
-                                {
-                                    .inputType = INPUT_FORWARD,
-                                    .inputData = NULL
-                                },
-                                false
-                            );
-                        }
-                    } else if (pressed && press_value_unit < 0.5) {
-                        press_readings++;
-                        if (press_readings > 2) {
-                            motor_task_.playHaptic(false);
-                            pressed = false;
-                        }
-                    } else {
-                        press_readings = 0;
+        if (configuration_loaded_ && configuration_value_.has_strain && strain_calibration_step_ == 0) {
+            // TODO: calibrate and track (long term moving average) idle point (lower)
+            press_value_unit = mapf(strain_reading_, configuration_value_.strain.idle_value, configuration_value_.strain.idle_value + configuration_value_.strain.press_delta, 0, 1);
+
+            // Ignore readings that are way out of expected bounds
+            if (-1 < press_value_unit && press_value_unit < 2) {
+                static uint8_t press_readings;
+                if (!pressed && press_value_unit > 1) {
+                    press_readings++;
+                    if (press_readings > 2) {
+                        motor_task_.playHaptic(true);
+                        pressed = true;
+                        press_count_++;
+                        publishState();
+                        setUserInput(
+                          {.inputType = INPUT_FORWARD,
+                           .inputData = NULL},
+                          false
+                        );
                     }
+                } else if (pressed && press_value_unit < 0.5) {
+                    press_readings++;
+                    if (press_readings > 2) {
+                        motor_task_.playHaptic(false);
+                        pressed = false;
+                    }
+                } else {
+                    press_readings = 0;
                 }
             }
-        } else {
-            LOG_WARN("HX711 not found (not ready?)");
-
-            #if SK_LEDS
-                for (uint8_t i = 0; i < NUM_LEDS; i++) {
-                    leds[i] = CRGB::Red;
-                }
-                FastLED.show();
-            #endif // SK_LEDS
         }
-    #endif // SK_STRAIN
+    } else {
+        LOG_WARN("HX711 not found (not ready?)");
 
-    uint16_t brightness = UINT16_MAX;
-    // TODO: brightness scale factor should be configurable (depends on reflectivity of surface)
-    #if SK_ALS
-        brightness = (uint16_t)CLAMP(lux_avg * 13000, (float)1280, (float)UINT16_MAX);
-    #endif // SK_ALS
-
-    #if SK_DISPLAY
-        display_task_->setBrightness(brightness); // TODO: apply gamma correction
-    #endif // SK_DISPLAY
-
-    #if SK_LEDS
+#if SK_LEDS
         for (uint8_t i = 0; i < NUM_LEDS; i++) {
-            leds[i].setHSV(latest_config_.led_hue, 255 - 180*CLAMP(press_value_unit, (float)0, (float)1) - 75*pressed, brightness >> 8);
-
-            // Gamma adjustment
-            leds[i].r = dim8_video(leds[i].r);
-            leds[i].g = dim8_video(leds[i].g);
-            leds[i].b = dim8_video(leds[i].b);
+            leds[i] = CRGB::Red;
         }
         FastLED.show();
-    #endif // SK_LEDS
+#endif // SK_LEDS
+    }
+#endif // SK_STRAIN
+
+    uint16_t brightness = UINT16_MAX;
+// TODO: brightness scale factor should be configurable (depends on reflectivity of surface)
+#if SK_ALS
+    brightness = (uint16_t)CLAMP(lux_avg * 13000, (float)1280, (float)UINT16_MAX);
+#endif // SK_ALS
+
+#if SK_DISPLAY
+    display_task_->setBrightness(brightness); // TODO: apply gamma correction
+#endif                                        // SK_DISPLAY
+
+#if SK_LEDS
+    for (uint8_t i = 0; i < NUM_LEDS; i++) {
+        leds[i].setHSV(latest_config_.led_hue, 255 - 180 * CLAMP(press_value_unit, (float)0, (float)1) - 75 * pressed, brightness >> 8);
+
+        // Gamma adjustment
+        leds[i].r = dim8_video(leds[i].r);
+        leds[i].g = dim8_video(leds[i].g);
+        leds[i].b = dim8_video(leds[i].b);
+    }
+    FastLED.show();
+#endif // SK_LEDS
 }
 
-void InterfaceTask::setConfiguration(Configuration* configuration) {
+void InterfaceTask::setConfiguration(Configuration *configuration) {
     SemaphoreGuard lock(mutex_);
     configuration_ = configuration;
 }
@@ -411,11 +348,39 @@ uint8_t InterfaceTask::incrementPositionNonce() {
     return position_nonce_;
 }
 
-void InterfaceTask::applyConfig(PB_SmartKnobConfig& config, bool from_remote) {
+/**
+ * @brief Change the current page to the requested page.
+ *
+ * Used to set relevant parameters on the outgoing and incoming pages,
+ * like remembering the last position.
+ *
+ * @param page The requested page
+ */
+void InterfaceTask::changePage(PageType page) {
+    auto it = this->page_map_.find(page);
+    if (it == this->page_map_.end()) {
+        LOG_ERROR("Unknown page requested");
+        return;
+    }
+
+    if (this->current_page_) {
+        auto current_config              = this->current_page_->getPageConfig();
+        current_config->initial_position = latest_state_.current_position;
+    }
+
+    this->current_page_ = it->second.get();
+    auto config  = this->current_page_->getPageConfig();
+    applyConfig(*config, false);
+
+    const char *page_name = config->has_view_config ? config->view_config.description : "Unnamed";
+    LOG_INFO("Switching to page [%s]", page_name);
+};
+
+void InterfaceTask::applyConfig(PB_SmartKnobConfig &config, bool from_remote) {
     // Generate a new nonce for the updated state
     config.position_nonce = incrementPositionNonce();
-    
+
     remote_controlled_ = from_remote;
-    latest_config_ = config;
+    latest_config_     = config;
     motor_task_.setConfig(config);
 }

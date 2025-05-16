@@ -1,27 +1,27 @@
+#pragma once
 
 #include "page.h"
 #include "views/view.h"
-#include "tasks/motor_task.h"
 #include "interface_callbacks.h"
 
-typedef std::function<void(void)> DemoConfigChangeCallback;
+#include "tasks/motor_task.h"
 
 class DemoPage : public Page {
     public:
-        DemoPage(ConfigCallback config_callback) : Page(), config_callback_(config_callback) {}
+        DemoPage(PageChangeCallback page_change_callback
+               , ConfigCallback config_change_callback
+               , Logger* logger)
+            : Page(page_change_callback, config_change_callback, logger)
+            {}
 
         ~DemoPage(){}
 
         PB_SmartKnobConfig * getPageConfig() override;
         void handleState(PB_SmartKnobState state) override {};
         void handleUserInput(input_t input, int input_data, PB_SmartKnobState state) override;
-
-        void init(DemoConfigChangeCallback demo_config_change_callback);
     
     private:
         int current_config_ = 0;
-
-        ConfigCallback config_callback_;
 
         PB_SmartKnobConfig configs_[11] =
         {

@@ -57,8 +57,8 @@ class ConnectivityTask : public Task<ConnectivityTask> {
   public:
     ConnectivityTask(const uint8_t task_core, const uint32_t stack_depth)
         : Task("Connectivity", stack_depth, 1, task_core)
-        , transmit_queue_(xQueueCreate(TRANSMISSION_QUEUE_SIZE, sizeof(MQTTPayload)))
     {
+        transmit_queue_ = xQueueCreate(TRANSMISSION_QUEUE_SIZE, sizeof(MQTTPayload));
         assert(transmit_queue_ != NULL);
     }
     ~ConnectivityTask() {
