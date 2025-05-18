@@ -21,11 +21,9 @@ enum class MediaMenu {
 
 class MediaMenuPage : public Page {
     public:
-        MediaMenuPage(PageChangeCallback page_change_callback
-                    , ConfigCallback config_change_callback
-                    , Logger* logger
+        MediaMenuPage(PageContext& context
                     , ConnectivityTask &connectivity_task)
-            : Page(page_change_callback, config_change_callback, logger)
+            : Page(context)
             , connectivity_task_(connectivity_task)
             {}
         ~MediaMenuPage() {}

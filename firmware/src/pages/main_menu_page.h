@@ -22,11 +22,7 @@ enum class MainMenu {
 
 class MainMenuPage : public Page {
     public:
-        MainMenuPage(PageChangeCallback page_change_callback
-                   , ConfigCallback config_change_callback
-                   , Logger* logger)
-            : Page(page_change_callback, config_change_callback, logger)
-            {}
+        MainMenuPage(PageContext& context) : Page(context) {}
 
         ~MainMenuPage(){}
 

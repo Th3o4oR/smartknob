@@ -8,11 +8,11 @@ void MorePage::handleMenuInput(int position) {
     auto menu_item = static_cast<MoreMenu>(position); // Convert the position to the corresponding menu item
     switch (menu_item) {
         case MoreMenu::BACK: {
-            page_change_callback_(PageType::MAIN_MENU_PAGE);
+            pageChange(PageType::MAIN_MENU_PAGE);
             break;
         }
         case MoreMenu::DEMO_CONFIGS: {
-            page_change_callback_(PageType::DEMO_PAGE);
+            pageChange(PageType::DEMO_PAGE);
             break;
         }
         default:
@@ -23,7 +23,7 @@ void MorePage::handleMenuInput(int position) {
 void MorePage::handleUserInput(input_t input, int input_data, PB_SmartKnobState state) {    
     switch (input) {
         case INPUT_BACK: {
-            page_change_callback_(PageType::MAIN_MENU_PAGE);
+            pageChange(PageType::MAIN_MENU_PAGE);
             break;
         }
         case INPUT_FORWARD: {

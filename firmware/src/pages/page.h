@@ -1,11 +1,13 @@
 #pragma once
 
+#include <Arduino.h>
 #include <functional>
+#include <variant>
 
-#include "../proto_gen/smartknob.pb.h"
-#include "../input_type.h"
+#include "proto_gen/smartknob.pb.h"
+#include "input_type.h"
+#include "event_bus.h"
 
-#include "interface_callbacks.h"
 #include "logger.h"
 
 enum class PageType {
@@ -18,14 +20,16 @@ enum class PageType {
     VOLUME_PAGE,
 };
 
+struct PageContext {
+    EventBus<PageEvent>& event_bus;
+    Logger* logger;
+};
+
 class Page {
     public:
-        Page(PageChangeCallback page_change_callback,
-             ConfigCallback config_change_callback,
-             Logger* logger)
-            : page_change_callback_(page_change_callback),
-              config_change_callback_(config_change_callback),
-              logger_(logger)
+        Page(PageContext& context)
+            : event_bus_(context.event_bus)
+            , logger_(context.logger)
             {}
         virtual ~Page(){}
 
@@ -34,17 +38,22 @@ class Page {
         virtual void handleState(PB_SmartKnobState state) = 0;
         virtual void handleUserInput(input_t input, int input_data, PB_SmartKnobState state) = 0;
 
-        // void setLogger(Logger* logger) {
-        //     logger_ = logger;
-        // }
         void log(const std::string& msg) {
-            // if (logger_ == nullptr) assert(false); // Attempting to log without a logger
             logger_->log(msg);
         }
     
     protected:
-        PageChangeCallback page_change_callback_;
-        ConfigCallback config_change_callback_;
+        EventBus<PageEvent>& event_bus_;
+
+        void pageChange(PageType page) {
+            event_bus_.publish(PageChangeEvent{page});
+        }
+        void configChange(PB_SmartKnobConfig& config) {
+            event_bus_.publish(ConfigChangeEvent{config});
+        }
+        void motorCalibration() {
+            event_bus_.publish(MotorCalibrationEvent{});
+        }
 
         Logger *logger_;
 };

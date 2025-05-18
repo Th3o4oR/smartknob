@@ -12,16 +12,6 @@ Adafruit_MQTT_Publish feed_pub_volume     = Adafruit_MQTT_Publish(&mqtt, TOPIC_P
 
 Adafruit_MQTT_Subscribe feed_sub_lighting = Adafruit_MQTT_Subscribe(&mqtt, TOPIC_SUBSCRIBE_BRIGHTNESS);
 
-// Template overload to use std::variant with std::visit
-// See https://stackoverflow.com/a/64018031
-template<class... Ts>
-struct overload : Ts... {
-    using Ts::operator()...;
-};
-template<class... Ts>
-overload(Ts...) -> overload<Ts...>;
-
-
 void sendMQTTKnobDiscoveryMsg() {
     JsonDocument payload;
     char         buffer[512];

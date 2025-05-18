@@ -21,11 +21,9 @@ class VolumePage : public Page {
     public:
         static const uint32_t INCOMING_VOLUME_QUEUE_SIZE = 1; // Size of the incoming brightness queue
     
-        VolumePage(PageChangeCallback page_change_callback
-                 , ConfigCallback config_change_callback
-                 , Logger* logger
+        VolumePage(PageContext& context
                  , ConnectivityTask &connectivity_task)
-            : Page(page_change_callback, config_change_callback, logger)
+            : Page(context)
             , connectivity_task_(connectivity_task)
         {
             incoming_volume_queue_ = xQueueCreate(INCOMING_VOLUME_QUEUE_SIZE, sizeof(BrightnessData));

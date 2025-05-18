@@ -10,7 +10,6 @@
 #include <map>
 #include <variant>
 #include <unordered_map>
-#include <typeindex>
 
 #include "task.h"
 #include "secrets.h" // SMARTKNOB_ID

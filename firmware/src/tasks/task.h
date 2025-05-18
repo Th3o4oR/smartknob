@@ -18,6 +18,11 @@
 #include <Arduino.h>
 #include "logger.h"
 
+// Template overload to use std::variant with std::visit
+// See https://stackoverflow.com/a/64018031
+template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
+template<class... Ts> overload(Ts...) -> overload<Ts...>;
+
 // Static polymorphic abstract base class for a FreeRTOS task using CRTP pattern. Concrete implementations
 // should implement a run() method.
 // Inspired by https://fjrg76.wordpress.com/2018/05/23/objectifying-task-creation-in-freertos-ii/

@@ -36,7 +36,7 @@ InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth
     , motor_task_(motor_task)
     , display_task_(display_task)
     , connectivity_task_(connectivity_task)
-    , plaintext_protocol_(stream_, [this]() { motor_task_.runCalibration(); })
+    , plaintext_protocol_(stream_)
     , proto_protocol_(stream_, [this](PB_SmartKnobConfig &config) { applyConfig(config, true); }) {
 #if SK_DISPLAY
     assert(display_task != nullptr);
@@ -58,26 +58,20 @@ InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth
     assert(i2c_mutex_ != NULL);
     i2c_mutex = &i2c_mutex_;
     display_task_->setI2CMutex(i2c_mutex);
-
-    // Create callbacks for page changes
-    PageChangeCallback page_change_callback = [this](PageType page) {
-        changePage(page);
-    };
-    ConfigCallback config_change_callback = [this](PB_SmartKnobConfig &config) {
-        applyConfig(config, false);
-    };
-    MotorCalibrationCallback motor_calibration_callback = [this]() {
-        motor_task_.runCalibration();
-    };
-
-    page_map_[PageType::MAIN_MENU_PAGE]  = std::make_unique<MainMenuPage>(page_change_callback,  config_change_callback, this);
-    page_map_[PageType::SETTINGS_PAGE]   = std::make_unique<SettingsPage>(page_change_callback,  config_change_callback, this, motor_calibration_callback);
-    page_map_[PageType::MEDIA_MENU_PAGE] = std::make_unique<MediaMenuPage>(page_change_callback, config_change_callback, this, connectivity_task_);
-    page_map_[PageType::VOLUME_PAGE]     = std::make_unique<VolumePage>(page_change_callback,    config_change_callback, this, connectivity_task_);
-    page_map_[PageType::MORE_PAGE]       = std::make_unique<MorePage>(page_change_callback,      config_change_callback, this);
-    page_map_[PageType::DEMO_PAGE]       = std::make_unique<DemoPage>(page_change_callback,      config_change_callback, this);
-    page_map_[PageType::LIGHTS_PAGE]     = std::make_unique<LightsPage>(page_change_callback,    config_change_callback, this, connectivity_task_);
     
+    page_event_bus_ = EventBus<PageEvent>();
+    auto page_context_ = PageContext {
+        .event_bus = page_event_bus_,
+        .logger    = this
+    };
+    page_map_[PageType::MAIN_MENU_PAGE]  = std::make_unique<MainMenuPage>(page_context_);
+    page_map_[PageType::SETTINGS_PAGE]   = std::make_unique<SettingsPage>(page_context_);
+    page_map_[PageType::MEDIA_MENU_PAGE] = std::make_unique<MediaMenuPage>(page_context_, connectivity_task_);
+    page_map_[PageType::VOLUME_PAGE]     = std::make_unique<VolumePage>(page_context_, connectivity_task_);
+    page_map_[PageType::MORE_PAGE]       = std::make_unique<MorePage>(page_context_);
+    page_map_[PageType::DEMO_PAGE]       = std::make_unique<DemoPage>(page_context_);
+    page_map_[PageType::LIGHTS_PAGE]     = std::make_unique<LightsPage>(page_context_, connectivity_task_);
+
     motor_task_.addListener(knob_state_queue_);
     display_task_->setListener(user_input_queue_);
 }
@@ -147,7 +141,13 @@ void InterfaceTask::run() {
                   LOG_ERROR("  FAILED to save config!");
               }
           }
-      }
+      },
+        [this]() {
+            if (!configuration_loaded_) {
+                return;
+            }
+            motor_task_.runCalibration();
+        }
     );
 
     SerialProtocol *current_protocol;
@@ -187,6 +187,22 @@ void InterfaceTask::run() {
             } else {
                 LOG_WARN("Discarding outdated state message (expected nonce %d, got %d)", position_nonce_, new_state.config.position_nonce);
             }
+        }
+
+        PageEvent event;
+        if (page_event_bus_.poll(event)) {
+            auto visitor = overload {
+                [&](const PageChangeEvent& e) {
+                    changePage(e.new_page);
+                },
+                [&](ConfigChangeEvent& e) {
+                    applyConfig(e.config, false);
+                },
+                [&](const MotorCalibrationEvent&) {
+                    motor_task_.runCalibration();
+                }
+            };
+            std::visit(visitor, event);
         }
 
         current_protocol_->loop();

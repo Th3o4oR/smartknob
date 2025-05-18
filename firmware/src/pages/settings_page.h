@@ -1,7 +1,6 @@
 #pragma once
 
 #include "page.h"
-#include "interface_callbacks.h"
 #include "views/view.h"
 
 #include "tasks/motor_task.h"
@@ -14,13 +13,7 @@ enum class SettingsMenu {
 
 class SettingsPage: public Page {
     public:
-        SettingsPage(PageChangeCallback page_change_callback
-                   , ConfigCallback config_change_callback
-                   , Logger* logger
-                   , MotorCalibrationCallback motor_calibration_callback)
-            : Page(page_change_callback, config_change_callback, logger)
-            , motor_calibration_callback_(motor_calibration_callback)
-            {}
+        SettingsPage(PageContext& context) : Page(context) {}
 
         ~SettingsPage(){}
 
@@ -29,8 +22,6 @@ class SettingsPage: public Page {
         void handleUserInput(input_t input, int input_data, PB_SmartKnobState state) override;
     
     private:
-        MotorCalibrationCallback motor_calibration_callback_;
-        
         void handleMenuInput(int position);
 
         PB_ViewConfig view_config = {

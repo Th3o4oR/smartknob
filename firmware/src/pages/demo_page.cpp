@@ -10,17 +10,17 @@ void DemoPage::handleUserInput(input_t input, int input_data, PB_SmartKnobState 
     case INPUT_BACK:
     {
         current_config_ = 0;
-        page_change_callback_(PageType::MORE_PAGE);
+        pageChange(PageType::MORE_PAGE);
         break;
     }
     case INPUT_NEXT:
     {
         current_config_++;
         if (current_config_ < sizeof(configs_) / sizeof(configs_[0])) {
-            config_change_callback_(configs_[current_config_]);
+            configChange(configs_[current_config_]);
         } else {
             current_config_ = 0;
-            config_change_callback_(configs_[current_config_]);
+            configChange(configs_[current_config_]);
         }
         break;
     }
@@ -28,10 +28,10 @@ void DemoPage::handleUserInput(input_t input, int input_data, PB_SmartKnobState 
     {
         current_config_++;
         if (current_config_ < sizeof(configs_) / sizeof(configs_[0])) {
-            config_change_callback_(configs_[current_config_]);
+            configChange(configs_[current_config_]);
         } else {
             current_config_ = 0;
-            page_change_callback_(PageType::MORE_PAGE);
+            pageChange(PageType::MORE_PAGE);
         }
         break;
     }
@@ -39,10 +39,10 @@ void DemoPage::handleUserInput(input_t input, int input_data, PB_SmartKnobState 
     {
         current_config_--;
         if (current_config_ >= 0) {
-            config_change_callback_(configs_[current_config_]);
+            configChange(configs_[current_config_]);
         } else {
             current_config_ = sizeof(configs_) / sizeof(configs_[0]);
-            config_change_callback_(configs_[current_config_]);
+            configChange(configs_[current_config_]);
         }
         break;
     }    

@@ -21,11 +21,9 @@ static constexpr uint32_t INCOMING_BRIGHTNESS_QUEUE_SIZE = 1; // Size of the inc
 
 class LightsPage : public Page {
     public:
-        LightsPage(PageChangeCallback page_change_callback
-                 , ConfigCallback config_change_callback
-                 , Logger* logger
+        LightsPage(PageContext& context
                  , ConnectivityTask &connectivity_task)
-            : Page(page_change_callback, config_change_callback, logger)
+            : Page(context)
             , connectivity_task_(connectivity_task)
         {
             incoming_brightness_queue_ = xQueueCreate(INCOMING_BRIGHTNESS_QUEUE_SIZE, sizeof(BrightnessData));

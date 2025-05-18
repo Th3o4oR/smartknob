@@ -4,10 +4,16 @@
 
 #include "../proto_gen/smartknob.pb.h"
 
-#include "interface_callbacks.h"
 #include "tasks/motor_task.h"
 #include "serial_protocol.h"
 #include "uart_stream.h"
+
+/**
+ * @brief Callback to request a config change
+ * 
+ * @param config The new config
+ */
+typedef std::function<void(PB_SmartKnobConfig&)> ConfigCallback;
 
 class SerialProtocolProtobuf : public SerialProtocol {
     public:

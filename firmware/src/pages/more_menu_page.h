@@ -15,11 +15,7 @@ enum class MoreMenu {
 
 class MorePage : public Page {
     public:
-        MorePage(PageChangeCallback page_change_callback
-               , ConfigCallback config_change_callback
-               , Logger* logger)
-            : Page(page_change_callback, config_change_callback, logger)
-            {}
+        MorePage(PageContext& context) : Page(context) {}
 
         ~MorePage(){}
 
