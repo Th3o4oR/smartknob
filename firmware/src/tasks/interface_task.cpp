@@ -30,6 +30,18 @@ HX711 scale;
 Adafruit_VEML7700 veml = Adafruit_VEML7700();
 #endif // SK_ALS
 
+/**
+ * Constructor for the InterfaceTask, responsible for initializing task dependencies
+ * and shared resources like queues and mutexes.
+ *
+ * Note on initialization order:
+ * - The EventBus (page_event_bus_) must be explicitly initialized in the member initializer list.
+ *   This ensures its internal FreeRTOS queue is created at a safe point in program execution.
+ * - In C++, class member variables are constructed in the order they are declared in the class,
+ *   *before* the body of the constructor is executed.
+ * - If page_event_bus_ is not explicitly initialized in the initializer list, it will be
+ *   default-constructed before the task is fully constructed or before the scheduler is ready.
+ */
 InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth, MotorTask &motor_task, DisplayTask *display_task, ConnectivityTask &connectivity_task)
     : Task("Interface", stack_depth, 1, task_core)
     , stream_()
@@ -37,7 +49,9 @@ InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth
     , display_task_(display_task)
     , connectivity_task_(connectivity_task)
     , plaintext_protocol_(stream_)
-    , proto_protocol_(stream_, [this](PB_SmartKnobConfig &config) { applyConfig(config, true); }) {
+    , proto_protocol_(stream_, [this](PB_SmartKnobConfig &config) { applyConfig(config, true); })
+    , page_event_bus_()
+    {
 #if SK_DISPLAY
     assert(display_task != nullptr);
 #endif // SK_DISPLAY
@@ -58,8 +72,7 @@ InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth
     assert(i2c_mutex_ != NULL);
     i2c_mutex = &i2c_mutex_;
     display_task_->setI2CMutex(i2c_mutex);
-    
-    page_event_bus_ = EventBus<PageEvent>();
+
     auto page_context_ = PageContext {
         .event_bus = page_event_bus_,
         .logger    = this
@@ -171,6 +184,14 @@ void InterfaceTask::run() {
     plaintext_protocol_.setProtocolChangeCallback(protocol_change_callback);
     proto_protocol_.setProtocolChangeCallback(protocol_change_callback);
 
+    TaskMonitor monitored_tasks[] = {
+        {"display", display_task_ ? display_task_->getHandle() : nullptr},
+        {"motor", motor_task_.getHandle()},
+        {"interface", this->getHandle()},
+        {"connectivity", connectivity_task_.getHandle()}
+    };
+    size_t monitored_tasks_count = sizeof(monitored_tasks) / sizeof(TaskMonitor);
+
     // Set initial page
     changePage(PageType::MAIN_MENU_PAGE);
 
@@ -187,6 +208,12 @@ void InterfaceTask::run() {
             } else {
                 LOG_WARN("Discarding outdated state message (expected nonce %d, got %d)", position_nonce_, new_state.config.position_nonce);
             }
+        }
+
+        static uint32_t last_stack_log = 0;
+        if (millis() - last_stack_log > 1000) {
+            last_stack_log = millis();
+            logStackAndHeapUsage(monitored_tasks, monitored_tasks_count);
         }
 
         PageEvent event;
@@ -399,4 +426,36 @@ void InterfaceTask::applyConfig(PB_SmartKnobConfig &config, bool from_remote) {
     remote_controlled_ = from_remote;
     latest_config_     = config;
     motor_task_.setConfig(config);
+}
+
+void InterfaceTask::logStackAndHeapUsage(const TaskMonitor* tasks, size_t count) {
+    constexpr unsigned int STACK_WARN_THRESHOLD = 512;  // in bytes
+    constexpr size_t LOG_BUFFER_SIZE = 512;
+
+    char line[LOG_BUFFER_SIZE] = "Stack: ";
+    for (size_t i = 0; i < count; ++i) {
+        const auto& task = tasks[i];
+        const char* name = task.name;
+        TaskHandle_t handle = task.handle;
+
+        if (handle == nullptr) {
+            snprintf(line + strlen(line), LOG_BUFFER_SIZE - strlen(line), "%s:N/A ", name);
+            continue;
+        }
+
+        uint32_t high_water = uxTaskGetStackHighWaterMark(handle); // in bytes
+
+        // Log warning individually if too low
+        if (high_water < STACK_WARN_THRESHOLD) {
+            LOG_WARN("Task '%s' low stack! Free: %d words (%d bytes)",
+                    name, high_water, high_water * 4);
+        }
+
+        snprintf(line + strlen(line), LOG_BUFFER_SIZE - strlen(line),
+                "-- %s: %4d ", name, high_water);
+    }
+
+    LOG_INFO("%s", line);
+    LOG_INFO("Heap: free: %d bytes, min ever: %d bytes",
+            xPortGetFreeHeapSize(), xPortGetMinimumEverFreeHeapSize());
 }

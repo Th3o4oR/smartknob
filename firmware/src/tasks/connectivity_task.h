@@ -30,6 +30,7 @@ struct ColorData { uint8_t r, g, b; };
 struct BrightnessData { int brightness; };
 struct PlayPauseData { bool paused; };
 struct SkipData { bool forward; };
+struct VolumeData { int volume; };
 
 enum class MQTTSubscriptionType {
     LIGHTING,
@@ -42,7 +43,8 @@ using MQTTPayload = std::variant<
     // ColorData,
     BrightnessData,
     PlayPauseData,
-    SkipData
+    SkipData,
+    VolumeData
 >;
 
 static constexpr uint32_t WIFI_SCAN_INTERVAL_MS       = 60 * 1000;

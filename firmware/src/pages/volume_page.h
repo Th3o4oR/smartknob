@@ -1,21 +1,18 @@
 #pragma once
 
 #include "page.h"
+#include "util.h"
 #include "views/view.h"
 
 #include "tasks/motor_task.h"
 #include "tasks/connectivity_task.h"
 
-/**
- * @brief Callback to handle page changes
- * 
- * @param config The new config
- */
-typedef std::function<void(PB_SmartKnobConfig *)> ConfigChangeCallback;
+static constexpr uint32_t VOLUME_MIN = 0;
+static constexpr uint32_t VOLUME_MAX = 40;
 
-// static constexpr uint32_t BRIGHTNESS_UPDATE_COOLDOWN_MS = 1000; // Cooldown from the last time the lights page published a brightness value, until it will update its own brightness from received MQTT messages
-// static constexpr uint32_t MQTT_PUBLISH_FREQUENCY_MS = 500; // Frequency at which the lights page will publish its position to MQTT
-// static constexpr uint32_t INCOMING_BRIGHTNESS_QUEUE_SIZE = 1; // Size of the incoming brightness queue
+static constexpr uint32_t VOLUME_UPDATE_COOLDOWN_MS = 1000; // Cooldown from the last time the lights page published a brightness value, until it will update its own brightness from received MQTT messages
+static constexpr uint32_t VOLUME_PUBLISH_FREQUENCY_MS = 500; // Frequency at which the lights page will publish its position to MQTT
+static constexpr uint32_t INCOMING_VOLUME_QUEUE_SIZE = 1; // Size of the incoming brightness queue
 
 class VolumePage : public Page {
     public:
@@ -45,8 +42,8 @@ class VolumePage : public Page {
 
         QueueHandle_t incoming_volume_queue_;
 
-        // uint32_t last_publish_time_;
-        // uint32_t last_published_position_;
+        uint32_t last_publish_time_;
+        uint32_t last_published_position_;
 
         PB_SmartKnobConfig config_ =
         {

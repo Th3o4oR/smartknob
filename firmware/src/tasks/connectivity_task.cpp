@@ -108,6 +108,10 @@ void ConnectivityTask::run() {
                     json_payload["forward"] = p.forward;
                     feed_pub = &feed_pub_skip;
                 },
+                [&](const VolumeData& p) {
+                    json_payload["volume"] = p.volume;
+                    feed_pub = &feed_pub_volume;
+                },
             };
             std::visit(visitor, mqtt_payload);
             if (feed_pub == nullptr) {

@@ -54,6 +54,31 @@ class Page {
         void motorCalibration() {
             event_bus_.publish(MotorCalibrationEvent{});
         }
+        // void pageChange(PageType page) {
+        //     event_bus_.publish(PageEvent {
+        //         .type = PageEventType::PAGE_CHANGE,
+        //         .data = {
+        //             .page_change = {page}
+        //         },
+        //     });
+        // }
+        // void configChange(PB_SmartKnobConfig config) {
+        //     PB_SmartKnobConfig *config_ptr = new PB_SmartKnobConfig(config);
+        //     event_bus_.publish(PageEvent {
+        //         .type = PageEventType::CONFIG_CHANGE,
+        //         .data = {
+        //             .config_change = {config_ptr}
+        //         },
+        //     });
+        // }
+        // void motorCalibration() {
+        //     event_bus_.publish(PageEvent {
+        //         .type = PageEventType::MOTOR_CALIBRATION,
+        //         .data = {
+        //             .motor_calibration = {}
+        //         },
+        //     });
+        // }
 
         Logger *logger_;
 };

@@ -4,14 +4,18 @@ PB_SmartKnobConfig * LightsPage::getPageConfig() {
     return &config_;
 }
 
-
 uint8_t positionToBrightness(int32_t position, PB_SmartKnobConfig config) {
-    float mapped = mapf(position, config.min_position, config.max_position, 0, 255); // in-min, in-max, out-min, out-max
+    float mapped = mapf(position, config.min_position, config.max_position, BRIGHTNESS_MIN, BRIGHTNESS_MAX); // in-min, in-max, out-min, out-max
     uint8_t brightness = round(mapped);
     return brightness;
 }
 int32_t brightnessToPosition(uint8_t brightness, PB_SmartKnobConfig config) {
-    float mapped = mapf(brightness, 0, 255, config.min_position, config.max_position); // in-min, in-max, out-min, out-max
+    // Alert if brightness is out of range
+    if (brightness < BRIGHTNESS_MIN || brightness > BRIGHTNESS_MAX) {
+        assert(false); // TODO: Handle this case, include logging
+    }
+
+    float mapped = mapf(brightness, BRIGHTNESS_MIN, BRIGHTNESS_MAX, config.min_position, config.max_position); // in-min, in-max, out-min, out-max
     int32_t position = round(mapped);
     return position;
 }
@@ -32,12 +36,11 @@ void LightsPage::checkForBrightnessUpdates(PB_SmartKnobState &state, PB_SmartKno
         return;
     }
     
-    PB_SmartKnobConfig* page_config = getPageConfig();
-    new_position = brightnessToPosition(brightness, *page_config);
-    page_config->initial_position = new_position; // Set the initial position, so when the config is applied, the motor task will set this as the current position
-    configChange(*page_config);
+    new_position = brightnessToPosition(brightness, config_);
+    config_.initial_position = new_position; // Set the initial position, so when the config is applied, the motor task will set this as the current position
+    configChange(config_);
     LOG_INFO("LIGHTS: Updating position to match received brightness");
-
+    
     state.current_position = new_position;
     last_published_position_ = new_position;
 }
@@ -48,7 +51,7 @@ void LightsPage::handleState(PB_SmartKnobState state) {
 
     // Outgoing
     if (last_published_position_ != state.current_position) {
-        if (millis() - last_publish_time_ > MQTT_PUBLISH_FREQUENCY_MS) {
+        if (millis() - last_publish_time_ > BRIGHTNESS_PUBLISH_FREQUENCY_MS) {
             LOG_INFO(
                 "LIGHTS: Publishing position to MQTT: %d (brightness: %d)",
                 state.current_position,

@@ -26,6 +26,11 @@
     #define SK_FORCE_UART_STREAM 0
 #endif // SK_FORCE_UART_STREAM
 
+struct TaskMonitor {
+    const char* name;
+    TaskHandle_t handle;
+};
+
 class InterfaceTask : public Task<InterfaceTask>, public Logger {
     friend class Task<InterfaceTask>; // Allow base Task to invoke protected run()
 
@@ -39,6 +44,7 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
         void setConfiguration(Configuration* configuration);
         void changePage(PageType page);
         uint8_t incrementPositionNonce();
+        void logStackAndHeapUsage(const TaskMonitor* tasks, size_t count);
 
     protected:
         void run();
