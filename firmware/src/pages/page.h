@@ -20,8 +20,28 @@ enum class PageType {
     VOLUME_PAGE,
 };
 
+namespace PageEvent {
+    struct PageChange {
+        PageType new_page;
+    };
+    struct ConfigChange {
+        PB_SmartKnobConfig config;
+    };
+    struct MotorCalibration {};
+
+    using Message = std::variant<
+        PageChange,
+        ConfigChange,
+        MotorCalibration
+    >;
+    
+    static_assert(std::is_pod_v<PageChange> == true);
+    static_assert(std::is_pod_v<ConfigChange> == true);
+    static_assert(std::is_pod_v<MotorCalibration> == true);
+}
+
 struct PageContext {
-    EventBus<PageEvent>& event_bus;
+    EventBus<PageEvent::Message>& event_bus;
     Logger* logger;
 };
 
@@ -43,42 +63,17 @@ class Page {
         }
     
     protected:
-        EventBus<PageEvent>& event_bus_;
+        EventBus<PageEvent::Message>& event_bus_;
 
         void pageChange(PageType page) {
-            event_bus_.publish(PageChangeEvent{page});
+            event_bus_.publish(PageEvent::PageChange{page});
         }
         void configChange(PB_SmartKnobConfig& config) {
-            event_bus_.publish(ConfigChangeEvent{config});
+            event_bus_.publish(PageEvent::ConfigChange{config});
         }
         void motorCalibration() {
-            event_bus_.publish(MotorCalibrationEvent{});
+            event_bus_.publish(PageEvent::MotorCalibration{});
         }
-        // void pageChange(PageType page) {
-        //     event_bus_.publish(PageEvent {
-        //         .type = PageEventType::PAGE_CHANGE,
-        //         .data = {
-        //             .page_change = {page}
-        //         },
-        //     });
-        // }
-        // void configChange(PB_SmartKnobConfig config) {
-        //     PB_SmartKnobConfig *config_ptr = new PB_SmartKnobConfig(config);
-        //     event_bus_.publish(PageEvent {
-        //         .type = PageEventType::CONFIG_CHANGE,
-        //         .data = {
-        //             .config_change = {config_ptr}
-        //         },
-        //     });
-        // }
-        // void motorCalibration() {
-        //     event_bus_.publish(PageEvent {
-        //         .type = PageEventType::MOTOR_CALIBRATION,
-        //         .data = {
-        //             .motor_calibration = {}
-        //         },
-        //     });
-        // }
 
         Logger *logger_;
 };

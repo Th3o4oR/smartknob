@@ -75,7 +75,7 @@ void setup_circle_elements(lv_obj_t **label_desc, lv_obj_t **arc_dot, lv_obj_t *
 void setup_circle_button(
   lv_obj_t               **button,
   const int                index,
-  const PB_SmartKnobConfig knob_config,
+  const PB_SmartKnobConfig &knob_config,
   lv_event_cb_t            button_event_cb
 ) {
     lv_obj_t *screen = lv_scr_act();
@@ -95,8 +95,6 @@ void setup_circle_button(
     lv_obj_add_event_cb(*button, button_event_cb, LV_EVENT_PRESSED, NULL);
 
     float      reduced_radius = RADIUS - button_padding - button_size / 2;
-    // float offset_to_center = RADIUS - button_size / 2; // Unneeded when aligning to center
-    int        num_buttons   = knob_config.max_position + 1;
     float      start_angle   = calculate_start_angle(knob_config);
     float      button_angle  = start_angle - index * knob_config.position_width_radians;
     lv_point_t button_coords = radial_coordinates(button_angle, reduced_radius);

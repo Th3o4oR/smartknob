@@ -217,16 +217,16 @@ void InterfaceTask::run() {
             // logStackAndHeapUsage(monitored_tasks, monitored_tasks_count);
         }
 
-        PageEvent event;
+        PageEvent::Message event;
         if (page_event_bus_.poll(event)) {
             auto visitor = overload {
-                [&](const PageChangeEvent& e) {
+                [&](const PageEvent::PageChange& e) {
                     changePage(e.new_page);
                 },
-                [&](ConfigChangeEvent& e) {
+                [&](PageEvent::ConfigChange& e) {
                     applyConfig(e.config, false);
                 },
-                [&](const MotorCalibrationEvent&) {
+                [&](const PageEvent::MotorCalibration&) {
                     motor_task_.runCalibration();
                 }
             };

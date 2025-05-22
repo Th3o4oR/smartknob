@@ -12,6 +12,7 @@
 #include "serial/serial_protocol_protobuf.h"
 #include "serial/uart_stream.h"
 #include "task.h"
+#include "event_bus.h"
 
 #include "input_type.h"
 #include "pages/main_menu_page.h"
@@ -88,7 +89,7 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
 
         std::map<PageType, std::unique_ptr<Page>> page_map_;
         Page* current_page_ = nullptr;
-        EventBus<PageEvent> page_event_bus_;
+        EventBus<PageEvent::Message> page_event_bus_;
 
         userInput_t user_input_;
 
