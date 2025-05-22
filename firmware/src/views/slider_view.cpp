@@ -22,15 +22,15 @@ void SliderView::setup_slider_elements(const PB_SmartKnobConfig config) {
     uint16_t left_bound_deg  = roundf(270 - range_degrees / 2); // 270 degrees (up) - half of range in degrees
     uint16_t right_bound_deg = roundf(270 + range_degrees / 2); // 270 degrees (up) + half of range in degrees
     
-    volume_arc = lv_arc_create(screen_);
-    lv_obj_center(volume_arc);
-    lv_obj_set_size(volume_arc, ARC_DIAMETER, ARC_DIAMETER);
-    lv_arc_set_angles(volume_arc, left_bound_deg, right_bound_deg); // Remember that LVGL uses degrees, going clockwise from the right
-    lv_arc_set_bg_angles(volume_arc, left_bound_deg, right_bound_deg);
+    slider_arc = lv_arc_create(screen_);
+    lv_obj_center(slider_arc);
+    lv_obj_set_size(slider_arc, ARC_DIAMETER, ARC_DIAMETER);
+    lv_arc_set_angles(slider_arc, left_bound_deg, right_bound_deg); // Remember that LVGL uses degrees, going clockwise from the right
+    lv_arc_set_bg_angles(slider_arc, left_bound_deg, right_bound_deg);
 
     static lv_style_t arc_style_main, arc_style_indicator;
     lv_style_init(&arc_style_main);
-    lv_style_set_arc_color(&arc_style_main, lv_palette_lighten(LV_PALETTE_GREY, 1));
+    lv_style_set_arc_color(&arc_style_main, lv_palette_lighten(LV_PALETTE_GREY, 1)); // https://vuetifyjs.com/en/styles/colors/
     lv_style_set_arc_width(&arc_style_main, ARC_WIDTH);
     lv_style_set_bg_opa(&arc_style_main, LV_OPA_TRANSP);
 
@@ -38,22 +38,22 @@ void SliderView::setup_slider_elements(const PB_SmartKnobConfig config) {
     lv_style_set_arc_width(&arc_style_indicator, ARC_WIDTH);
     lv_style_set_arc_opa(&arc_style_indicator, LV_OPA_TRANSP);
 
-    lv_obj_add_style(volume_arc, &arc_style_main, LV_PART_MAIN);
-    lv_obj_add_style(volume_arc, &arc_style_indicator, LV_PART_INDICATOR);
-    lv_obj_remove_style(volume_arc, NULL, LV_PART_KNOB);
+    lv_obj_add_style(slider_arc, &arc_style_main, LV_PART_MAIN);
+    lv_obj_add_style(slider_arc, &arc_style_indicator, LV_PART_INDICATOR);
+    lv_obj_remove_style(slider_arc, NULL, LV_PART_KNOB);
 
-    volume_icon = lv_label_create(screen_);
-    lv_obj_align(volume_icon, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_style_text_font(volume_icon, &mdi_40, 0);
-    lv_obj_set_style_text_color(volume_icon, lv_color_white(), 0);
-    lv_obj_set_style_text_align(volume_icon, LV_ALIGN_CENTER, LV_PART_MAIN);
+    slider_icon = lv_label_create(screen_);
+    lv_obj_align(slider_icon, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_set_style_text_font(slider_icon, &mdi_40, 0);
+    lv_obj_set_style_text_color(slider_icon, lv_color_white(), 0);
+    lv_obj_set_style_text_align(slider_icon, LV_ALIGN_CENTER, LV_PART_MAIN);
     
-    volume_counter_label = lv_label_create(screen_);
-    lv_obj_align(volume_counter_label, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_style_text_color(volume_counter_label, lv_color_white(), 0);
-    lv_obj_set_style_text_font(volume_counter_label, &roboto_light_24, 0);
+    slider_counter_label = lv_label_create(screen_);
+    lv_obj_align(slider_counter_label, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_set_style_text_color(slider_counter_label, lv_color_white(), 0);
+    lv_obj_set_style_text_font(slider_counter_label, &roboto_light_24, 0);
     
-    update_label(volume_icon, ICON_VOLUME_UP, 0, 0); // TODO: Use a much larger icon
+    update_label(slider_icon, ICON_VOLUME_UP, 0, 0); // TODO: Use a much larger icon
 }
 
 void SliderView::setupView(PB_SmartKnobConfig config) {
@@ -74,10 +74,7 @@ void SliderView::setupView(PB_SmartKnobConfig config) {
     lv_obj_set_style_outline_width(arc_dot, ARC_DOT_OUTLINE, LV_PART_MAIN);
     lv_obj_set_style_outline_color(arc_dot, lv_color_black(), LV_PART_MAIN);
 
-    // update_label(label_desc, config.view_config.description, 0, -60);
     update_label(label_desc, "", 0, 0);
-    // lv_obj_set_style_text_color(label_desc, lv_color_white(), 0);
-    // lv_obj_set_style_text_font(label_desc, &roboto_light_24, 0);
 }
 
 void SliderView::updateView(PB_SmartKnobState state) {
@@ -137,7 +134,7 @@ void SliderView::updateView(PB_SmartKnobState state) {
         // Instead, clamp the dot_angle_rad to the bounds
         // Never mind, this won't work, because the reference points don't move past the bounds (plus the adjusted sub_position)
         // Need some other way to keep the momentum of the dot, so it can "slam" into the bounds
-        dot_angle_rad = adjusted_angle_rad;
+        dot_angle_rad = raw_angle_rad;
 
         lv_obj_clear_flag(arc, LV_OBJ_FLAG_HIDDEN);
         if (raw_angle_offset_deg < adjusted_angle_offset_deg) {
@@ -152,5 +149,9 @@ void SliderView::updateView(PB_SmartKnobState state) {
     }
 
     arc_dot_set_angle(arc_dot, dot_angle_rad, ARC_DOT_PADDING, 0);
-    update_label(volume_counter_label, std::to_string(state.current_position).c_str(), 0, VOLUME_COUNTER_POSITION(left_bound_rad));
+    
+    char buffer[4];
+    // int32_t display_position = (float)state.current_position * 100.0f / (float)(state.config.max_position - state.config.min_position);
+    snprintf(buffer, sizeof(buffer), "%d", state.current_position);
+    update_label(slider_counter_label, buffer, 0, SLIDER_COUNTER_POSITION(left_bound_rad));
 }

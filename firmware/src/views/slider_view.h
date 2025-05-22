@@ -10,12 +10,12 @@
 #define ARC_PADDING  10
 #define ARC_DIAMETER (2 * RADIUS - ARC_PADDING - ARC_WIDTH/2)
 
-#define ARC_DOT_PADDING ARC_PADDING + ARC_WIDTH/2 - 1 // 1 pixel has been subtracted to account for flooring in ARC_WIDTH/2
+#define ARC_DOT_PADDING (ARC_PADDING + ARC_WIDTH/2 - 1) // 1 pixel has been subtracted to account for flooring in ARC_WIDTH/2
 // #define ARC_DOT_PADDING ARC_PADDING + 25 // 1 pixel has been subtracted to account for flooring in ARC_WIDTH/2
-#define ARC_DOT_DIAMETER ARC_WIDTH + 8
+#define ARC_DOT_DIAMETER (ARC_WIDTH + 8)
 #define ARC_DOT_OUTLINE 6
 
-#define VOLUME_COUNTER_POSITION(angle_rad) (int)(-ARC_DIAMETER / 2 * cosf(angle_rad))
+#define SLIDER_COUNTER_POSITION(angle_rad) (int)(ARC_DIAMETER/2 * -sinf(angle_rad))
 
 // constexpr uint8_t ARC_WARNING_START = ARC_VALUES * 0.5;
 // constexpr uint8_t ARC_DANGER_START  = ARC_VALUES * 0.85;
@@ -41,8 +41,8 @@ class SliderView: public View {
         lv_obj_t * arc_dot;
         lv_obj_t * arc;
         
-        lv_obj_t * volume_arc;
-        lv_obj_t * volume_counter_label;
-        lv_obj_t * volume_icon;
+        lv_obj_t * slider_arc;
+        lv_obj_t * slider_counter_label;
+        lv_obj_t * slider_icon;
         void setup_slider_elements(PB_SmartKnobConfig config);
 };

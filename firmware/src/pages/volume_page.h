@@ -57,9 +57,13 @@ class VolumePage : public Page {
             .sub_position_unit      = 0,
             .position_nonce         = 0,
             .min_position           = 0,
-            .max_position           = 100,
+            .max_position           = 50,
             .infinite_scroll        = false,
-            .position_width_radians = 2.7 * PI / 180, // 2.7 degrees equals 3/4 of a circle at 100 positions
+
+            // 360*0.75 / 50 = 5.40 degrees per position
+            // 360*0.60 / 50 = 4.32 degrees per position
+            // .position_width_radians = 2.7 * PI / 180, // 2.7 degrees equals 3/4 of a circle at 100 positions
+            .position_width_radians = 5.40 * PI / 180,
             .detent_strength_unit   = 0.4,
             .endstop_strength_unit  = 1,
             .snap_point             = 1.1,
