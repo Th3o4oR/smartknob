@@ -20,16 +20,21 @@ namespace MotorCommand {
     struct PlayHaptic {
         bool press;
     };
+    struct RegisterStateListener {
+        QueueHandle_t queue;
+    };
 
     using Message = std::variant<
         Calibrate
         , SetConfig
         , PlayHaptic
+        , RegisterStateListener
     >;
     
     static_assert(std::is_pod_v<Calibrate>);
     static_assert(std::is_pod_v<SetConfig>);
     static_assert(std::is_pod_v<PlayHaptic>);
+    static_assert(std::is_pod_v<RegisterStateListener>);
 }
 
 class MotorTask : public Task<MotorTask> {
@@ -43,7 +48,7 @@ class MotorTask : public Task<MotorTask> {
         void playHaptic(bool press);
         void runCalibration();
 
-        void addListener(QueueHandle_t queue);
+        void registerStateListener(QueueHandle_t queue);
 
     protected:
         void run();
@@ -51,7 +56,10 @@ class MotorTask : public Task<MotorTask> {
     private:
         Configuration& configuration_;
         std::vector<QueueHandle_t> listeners_;
-        EventBus<MotorCommand::Message> command_bus_;
+
+        EventBusCore<MotorCommand::Message> command_bus_;
+        EventSender<MotorCommand::Message> command_sender_;
+        EventReceiver<MotorCommand::Message> command_receiver_;
 
         // BLDC motor & driver instance
         BLDCMotor motor_ = BLDCMotor(1);

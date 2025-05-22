@@ -1,36 +1,57 @@
 #pragma once
 
-#include <variant>
 #include <Arduino.h>
+#include <variant>
 #include <assert.h>
 
 #include "proto_gen/smartknob.pb.h"
 #include "input_type.h"
 
-template<typename EventT>
-class EventBus {
-public:
-    // Important:
-    // This must be initialized explicitly in the constructor's member initializer list.
-    // Initialization too early may cause the queue to be created before the FreeRTOS scheduler is started.
-    EventBus() {
-        queue_ = xQueueCreate(5, sizeof(EventT));
+template <typename EventT>
+class EventBusCore {
+  public:
+    EventBusCore(size_t queue_size = 5) {
+        queue_ = xQueueCreate(queue_size, sizeof(EventT));
         assert(queue_ != NULL);
     }
-    ~EventBus() {
+
+    ~EventBusCore() {
         vQueueDelete(queue_);
     }
 
-    void publish(const EventT& e) {
+    QueueHandle_t queue() const { return queue_; }
+
+  private:
+    QueueHandle_t queue_;
+};
+
+template <typename EventT>
+class EventSender {
+  public:
+    explicit EventSender(QueueHandle_t queue)
+        : queue_(queue) {}
+
+    void publish(const EventT &e) const {
         BaseType_t result = xQueueSend(queue_, &e, 0);
         if (result != pdPASS) {
-            // Handle error: queue full or send failed
+            // Handle error
         }
     }
-    bool poll(EventT& e, TickType_t timeout = 0) {
+
+  private:
+    QueueHandle_t queue_;
+};
+
+template <typename EventT>
+class EventReceiver {
+  public:
+    explicit EventReceiver(QueueHandle_t queue)
+        : queue_(queue) {}
+
+    bool receive(EventT &e, TickType_t timeout = 0) const {
         return xQueueReceive(queue_, &e, timeout) == pdPASS;
     }
 
-private:
+  private:
     QueueHandle_t queue_;
 };

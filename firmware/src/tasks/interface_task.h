@@ -89,7 +89,9 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
 
         std::map<PageType, std::unique_ptr<Page>> page_map_;
         Page* current_page_ = nullptr;
-        EventBus<PageEvent::Message> page_event_bus_;
+        EventBusCore<PageEvent::Message> page_event_bus_;
+        EventSender<PageEvent::Message> page_event_sender_;
+        EventReceiver<PageEvent::Message> page_event_receiver_;
 
         userInput_t user_input_;
 

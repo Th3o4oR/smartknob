@@ -41,7 +41,7 @@ namespace PageEvent {
 }
 
 struct PageContext {
-    EventBus<PageEvent::Message>& event_bus;
+    EventSender<PageEvent::Message>& event_bus;
     Logger* logger;
 };
 
@@ -63,7 +63,7 @@ class Page {
         }
     
     protected:
-        EventBus<PageEvent::Message>& event_bus_;
+        EventSender<PageEvent::Message>& event_bus_;
 
         void pageChange(PageType page) {
             event_bus_.publish(PageEvent::PageChange{page});

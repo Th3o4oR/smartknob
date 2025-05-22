@@ -34,6 +34,8 @@ MotorTask::MotorTask(const uint8_t task_core, const uint32_t stack_depth, Config
     : Task("Motor", stack_depth, 1, task_core)
     , configuration_(configuration)
     , command_bus_()
+    , command_sender_(command_bus_.queue())
+    , command_receiver_(command_bus_.queue())
     {}
 
 MotorTask::~MotorTask() {}
@@ -116,7 +118,7 @@ void MotorTask::run() {
 
         // Receive and handle commands from other tasks
         MotorCommand::Message command;
-        if (command_bus_.poll(command)) {
+        if (command_receiver_.receive(command)) {
             auto visitor = overload {
                 [&](const MotorCommand::Calibrate&) {
                     calibrate();
@@ -206,6 +208,10 @@ void MotorTask::run() {
                     }
                     motor_.move(0);
                     motor_.loopFOC();
+                },
+                [&](const MotorCommand::RegisterStateListener& r) {
+                    // Register a listener for state updates
+                    listeners_.push_back(r.queue);
                 },
             };
             std::visit(visitor, command);
@@ -339,19 +345,16 @@ void MotorTask::run() {
 }
 
 void MotorTask::setConfig(const PB_SmartKnobConfig& config) {
-    command_bus_.publish(MotorCommand::SetConfig{config});
+    command_sender_.publish(MotorCommand::SetConfig{config});
 }
-
 void MotorTask::playHaptic(bool press) {
-    command_bus_.publish(MotorCommand::PlayHaptic{press});
+    command_sender_.publish(MotorCommand::PlayHaptic{press});
 }
-
 void MotorTask::runCalibration() {
-    command_bus_.publish(MotorCommand::Calibrate{});
+    command_sender_.publish(MotorCommand::Calibrate{});
 }
-
-void MotorTask::addListener(QueueHandle_t queue) {
-    listeners_.push_back(queue);
+void MotorTask::registerStateListener(QueueHandle_t queue) {
+    command_sender_.publish(MotorCommand::RegisterStateListener{queue});
 }
 
 void MotorTask::publish(const PB_SmartKnobState& state) {

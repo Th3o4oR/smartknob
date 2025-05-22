@@ -51,6 +51,8 @@ InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth
     , plaintext_protocol_(stream_)
     , proto_protocol_(stream_, [this](PB_SmartKnobConfig &config) { applyConfig(config, true); })
     , page_event_bus_()
+    , page_event_sender_(page_event_bus_.queue())
+    , page_event_receiver_(page_event_bus_.queue())
     {
 #if SK_DISPLAY
     assert(display_task != nullptr);
@@ -74,7 +76,7 @@ InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth
     display_task_->setI2CMutex(i2c_mutex);
 
     auto page_context_ = PageContext {
-        .event_bus = page_event_bus_,
+        .event_bus = page_event_sender_,
         .logger    = this
     };
     page_map_[PageType::MAIN_MENU_PAGE]  = std::make_unique<MainMenuPage>(page_context_);
@@ -85,7 +87,7 @@ InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth
     page_map_[PageType::DEMO_PAGE]       = std::make_unique<DemoPage>(page_context_);
     page_map_[PageType::LIGHTS_PAGE]     = std::make_unique<LightsPage>(page_context_, connectivity_task_);
 
-    motor_task_.addListener(knob_state_queue_);
+    motor_task_.registerStateListener(knob_state_queue_);
     display_task_->setListener(user_input_queue_);
 }
 
@@ -218,7 +220,7 @@ void InterfaceTask::run() {
         }
 
         PageEvent::Message event;
-        if (page_event_bus_.poll(event)) {
+        if (page_event_receiver_.receive(event)) {
             auto visitor = overload {
                 [&](const PageEvent::PageChange& e) {
                     changePage(e.new_page);

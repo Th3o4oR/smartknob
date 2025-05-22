@@ -66,7 +66,7 @@ void setup() {
     display_task.begin();
 
     // Connect display to motor_task's knob state feed
-    motor_task.addListener(display_task.getKnobStateQueue());
+    motor_task.registerStateListener(display_task.getKnobStateQueue());
     #endif // SK_DISPLAY
     
     config.setLogger(&interface_task);
@@ -81,7 +81,6 @@ void setup() {
     
     // Free up the main loop task (prevents `loop` from running)
     vTaskDelete(NULL); // Note: Main task seems to prevent the connectivity task from connecting to WiFi
-    return;
 }
 
 void loop() {
