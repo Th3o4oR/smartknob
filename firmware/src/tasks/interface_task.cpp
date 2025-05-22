@@ -213,7 +213,8 @@ void InterfaceTask::run() {
         static uint32_t last_stack_log = 0;
         if (millis() - last_stack_log > 1000) {
             last_stack_log = millis();
-            logStackAndHeapUsage(monitored_tasks, monitored_tasks_count);
+            monitorStackAndHeapUsage(monitored_tasks, monitored_tasks_count);
+            // logStackAndHeapUsage(monitored_tasks, monitored_tasks_count);
         }
 
         PageEvent event;
@@ -428,6 +429,46 @@ void InterfaceTask::applyConfig(PB_SmartKnobConfig &config, bool from_remote) {
     motor_task_.setConfig(config);
 }
 
+/**
+ * @brief Monitor the stack and heap usage of the monitored tasks.
+ *
+ * This function checks the stack and heap usage of the monitored tasks
+ * and logs a warning if any task's stack usage is below a certain threshold.
+ *
+ * @param tasks The array of TaskMonitor structures containing task information.
+ * @param count The number of tasks in the array.
+ */
+void InterfaceTask::monitorStackAndHeapUsage(const TaskMonitor* tasks, size_t count) {
+    constexpr unsigned int STACK_WARN_THRESHOLD = 512;  // in bytes
+
+    for (size_t i = 0; i < count; ++i) {
+        const auto& task = tasks[i];
+        const char* name = task.name;
+        TaskHandle_t handle = task.handle;
+
+        if (handle == nullptr) {
+            continue;
+        }
+
+        uint32_t high_water = uxTaskGetStackHighWaterMark(handle); // in bytes
+
+        // Log warning individually if too low
+        if (high_water < STACK_WARN_THRESHOLD) {
+            LOG_WARN("Task '%s' low stack! Free: %d words (%d bytes)",
+                    name, high_water, high_water * 4);
+        }
+    }
+}
+/**
+ * @brief Log the stack and heap usage of the monitored tasks.
+ *
+ * This function logs the stack and heap usage of the monitored tasks
+ * to the serial output. It also logs a warning if any task's stack
+ * usage is below a certain threshold.
+ *
+ * @param tasks The array of TaskMonitor structures containing task information.
+ * @param count The number of tasks in the array.
+ */
 void InterfaceTask::logStackAndHeapUsage(const TaskMonitor* tasks, size_t count) {
     constexpr unsigned int STACK_WARN_THRESHOLD = 512;  // in bytes
     constexpr size_t LOG_BUFFER_SIZE = 512;
@@ -444,13 +485,6 @@ void InterfaceTask::logStackAndHeapUsage(const TaskMonitor* tasks, size_t count)
         }
 
         uint32_t high_water = uxTaskGetStackHighWaterMark(handle); // in bytes
-
-        // Log warning individually if too low
-        if (high_water < STACK_WARN_THRESHOLD) {
-            LOG_WARN("Task '%s' low stack! Free: %d words (%d bytes)",
-                    name, high_water, high_water * 4);
-        }
-
         snprintf(line + strlen(line), LOG_BUFFER_SIZE - strlen(line),
                 "-- %s: %4d ", name, high_water);
     }

@@ -44,6 +44,8 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
         void setConfiguration(Configuration* configuration);
         void changePage(PageType page);
         uint8_t incrementPositionNonce();
+        
+        void monitorStackAndHeapUsage(const TaskMonitor* tasks, size_t count);
         void logStackAndHeapUsage(const TaskMonitor* tasks, size_t count);
 
     protected:
