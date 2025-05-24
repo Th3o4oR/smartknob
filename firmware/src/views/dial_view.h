@@ -19,6 +19,14 @@ class DialView: public View {
     private:
         PB_SmartKnobState previous_state_;
 
+        // Assume that the bounds don't change, so we can calculate them once
+        float range_radians_;
+        float left_bound_rad_;
+        float right_bound_rad_;
+        float left_bound_deg_;
+        float right_bound_deg_;
+        int32_t num_positions_;
+
         DisplayTask* display_task_;
         lv_obj_t * screen_;
         lv_obj_t * label_cur_pos;

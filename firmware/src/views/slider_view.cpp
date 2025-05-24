@@ -10,7 +10,7 @@
  * @param x_offset The x offset to use
  * @param y_offset The y offset to use
  */
-void update_label(lv_obj_t *label, const char *text, int x_offset, int y_offset) {
+void update_label(lv_obj_t *label, const char *text, lv_coord_t x_offset, lv_coord_t y_offset) {
     lv_label_set_text(label, text);
     lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_align(label, LV_ALIGN_CENTER, x_offset, y_offset);
@@ -75,16 +75,17 @@ void SliderView::setupView(PB_SmartKnobConfig config) {
     lv_obj_set_style_outline_color(arc_dot, lv_color_black(), LV_PART_MAIN);
 
     update_label(label_desc, "", 0, 0);
+
+    range_radians_   = (config.max_position - config.min_position) * config.position_width_radians;
+    left_bound_rad_  = PI/2 + range_radians_ / 2; // 90 degrees (up) + half of range in radians
+    right_bound_rad_ = PI/2 - range_radians_ / 2; // 90 degrees (up) - half of range in radians
+    left_bound_deg_  = left_bound_rad_ * (180 / PI);
+    right_bound_deg_ = right_bound_rad_ * (180 / PI);
+    num_positions_   = config.max_position - config.min_position + 1;
+    slider_counter_position_ = SLIDER_COUNTER_POSITION(left_bound_rad_);
 }
 
 void SliderView::updateView(PB_SmartKnobState state) {
-    const float range_radians   = (state.config.max_position - state.config.min_position) * state.config.position_width_radians;
-    const float left_bound_rad  = PI/2 + range_radians / 2; // 90 degrees (up) + half of range in radians
-    const float right_bound_rad = PI/2 - range_radians / 2; // 90 degrees (up) - half of range in radians
-    const float left_bound_deg = left_bound_rad * (180 / PI);
-    const float right_bound_deg = right_bound_rad * (180 / PI);
-    const int32_t num_positions = state.config.max_position - state.config.min_position + 1;
-    
     // clang-format off
     // const bool config_changed = (previous_state_.config.detent_strength_unit != state.config.detent_strength_unit)
     // || (previous_state_.config.endstop_strength_unit != state.config.endstop_strength_unit)
@@ -94,64 +95,62 @@ void SliderView::updateView(PB_SmartKnobState state) {
     // previous_state_ = state;
     
     float adjusted_sub_position = state.sub_position_unit * state.config.position_width_radians;
-    if (num_positions > 0 && !state.config.infinite_scroll) {
-        if (state.current_position == state.config.min_position && state.sub_position_unit < 0) {
+    const bool past_minimum = (state.current_position == state.config.min_position && state.sub_position_unit < 0);
+    const bool past_maximum = (state.current_position == state.config.max_position && state.sub_position_unit > 0);
+    if (num_positions_ > 0 && !state.config.infinite_scroll) {
+        if (past_minimum) {
             adjusted_sub_position = -logf(1 - state.sub_position_unit * state.config.position_width_radians / 5 / PI * 180) * 5 * PI / 180;
-        } else if (state.current_position == state.config.max_position && state.sub_position_unit > 0) {
+        } else if (past_maximum) {
             adjusted_sub_position = logf(1 + state.sub_position_unit * state.config.position_width_radians / 5 / PI * 180) * 5 * PI / 180;
         }
     }
     
-    const float raw_angle_rad      = left_bound_rad - (state.current_position - state.config.min_position) * state.config.position_width_radians;
+    const float raw_angle_rad      = left_bound_rad_ - (state.current_position - state.config.min_position) * state.config.position_width_radians;
     const float adjusted_angle_rad = raw_angle_rad - adjusted_sub_position;
-
-    static float first_control_point = adjusted_angle_rad; // The control point will lerp toward the current position
-    static float second_control_point = adjusted_angle_rad; // The control point will lerp toward the current position
-    first_control_point = lerp_approx(first_control_point, adjusted_angle_rad, 0.25);
-    second_control_point = lerp_approx(second_control_point, first_control_point, 0.25);
-    
-    float dot_angle_rad = second_control_point;
-    // float fill_height = 0;
-    // // int32_t exact_fill_height = 0;
-    // if (num_positions > 1) {
-    //     // exact_fill_height = 255 - state.current_position * 255 / (num_positions - 1);
-    //     fill_height = 255 - second_control_point * 255 / (num_positions - 1);
-    // }
-    // if (config_changed) {
-    //     dot_angle_rad = adjusted_angle_rad;
-    //     // fill_height = exact_fill_height;
-    // }
-    // set_screen_gradient((int32_t)roundf(fill_height));
-
+    // TODO: Replace with Arduino's radians() function when available
     const int32_t raw_angle_offset_deg      = (int)(-((raw_angle_rad * (180 / PI)) - 90));
     const int32_t adjusted_angle_offset_deg = (int)(-((adjusted_angle_rad * (180 / PI)) - 90));
 
-    const bool past_minimum = (state.current_position == state.config.min_position && state.sub_position_unit < 0);
-    const bool past_maximum = (state.current_position == state.config.max_position && state.sub_position_unit > 0);
-    if (num_positions > 0 && !state.config.infinite_scroll && (past_minimum || past_maximum)) {
-        // arc_dot_set_angle(arc_dot, raw_angle_rad, ARC_DOT_PADDING, 0);
-        // TODO: Setting the angle to the raw angle removes any momentum
-        // Instead, clamp the dot_angle_rad to the bounds
-        // Never mind, this won't work, because the reference points don't move past the bounds (plus the adjusted sub_position)
-        // Need some other way to keep the momentum of the dot, so it can "slam" into the bounds
-        dot_angle_rad = raw_angle_rad;
+    // Calculate delta time since last frame. TODO: Pass this in from the display task instead of calculating it here
+    static TickType_t tick = xTaskGetTickCount();
+    TickType_t current_tick = xTaskGetTickCount();
+    TickType_t delta_tick = current_tick - tick;
+    tick = current_tick; // Update the tick for the next frame
+    float dt = (float)delta_tick / configTICK_RATE_HZ; // Convert to seconds
 
-        lv_obj_clear_flag(arc, LV_OBJ_FLAG_HIDDEN);
-        if (raw_angle_offset_deg < adjusted_angle_offset_deg) {
-            lv_arc_set_rotation(arc, 270 + left_bound_deg);
+    constexpr float decay_slow = 20.0f; // Decay factor for the exponential decay function
+    constexpr float decay_fast = 35.0f; // Faster decay for the dot when past bounds
+    static float decay = decay_slow;
+    static float first_control_point = adjusted_angle_rad;
+    static float second_control_point = adjusted_angle_rad;
+    first_control_point = exp_decay(first_control_point, adjusted_angle_rad, decay, dt);
+    second_control_point = exp_decay(second_control_point, first_control_point, decay, dt);
+    float dot_angle_rad = clamp(second_control_point, right_bound_rad_, left_bound_rad_);
+
+    if (num_positions_ > 0 && !state.config.infinite_scroll && (past_minimum || past_maximum)) {
+        decay = decay_fast;
+
+        const bool dot_at_right_bound = fabs(dot_angle_rad - right_bound_rad_) < 0.01f; // Allow a small margin of error
+        const bool dot_at_left_bound  = fabs(dot_angle_rad - left_bound_rad_) < 0.01f; // Allow a small margin of error
+        if (dot_at_right_bound && raw_angle_offset_deg < adjusted_angle_offset_deg) {
+            lv_obj_clear_flag(arc, LV_OBJ_FLAG_HIDDEN);
+            lv_arc_set_rotation(arc, 270 + left_bound_deg_);
             lv_arc_set_angles(arc, 270, 270 - (raw_angle_offset_deg - adjusted_angle_offset_deg));
-        } else {
-            lv_arc_set_rotation(arc, 270 + right_bound_deg);
+        } else if (dot_at_left_bound && raw_angle_offset_deg > adjusted_angle_offset_deg) {
+            lv_obj_clear_flag(arc, LV_OBJ_FLAG_HIDDEN);
+            lv_arc_set_rotation(arc, 270 + right_bound_deg_);
             lv_arc_set_angles(arc, 270 - (raw_angle_offset_deg - adjusted_angle_offset_deg), 270);
+        } else {
+            lv_obj_add_flag(arc, LV_OBJ_FLAG_HIDDEN);
         }
     } else {
         lv_obj_add_flag(arc, LV_OBJ_FLAG_HIDDEN);
+        decay = decay_slow; // Reset decay to the default value
     }
 
     arc_dot_set_angle(arc_dot, dot_angle_rad, ARC_DOT_PADDING, 0);
-    
-    char buffer[4];
-    // int32_t display_position = (float)state.current_position * 100.0f / (float)(state.config.max_position - state.config.min_position);
-    snprintf(buffer, sizeof(buffer), "%d", state.current_position);
-    update_label(slider_counter_label, buffer, 0, SLIDER_COUNTER_POSITION(left_bound_rad));
+
+    lv_label_set_text_fmt(slider_counter_label, "%d", state.current_position);
+    lv_obj_set_style_text_align(slider_counter_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_align(slider_counter_label, LV_ALIGN_CENTER, 0, slider_counter_position_);
 }

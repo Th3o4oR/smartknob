@@ -34,6 +34,13 @@ class SliderView: public View {
 
     private:
         // PB_SmartKnobState previous_state_;
+        float range_radians_;
+        float left_bound_rad_;
+        float right_bound_rad_;
+        float left_bound_deg_;
+        float right_bound_deg_;
+        int32_t num_positions_;
+        lv_coord_t slider_counter_position_;
 
         DisplayTask* display_task_;
         lv_obj_t * screen_;
