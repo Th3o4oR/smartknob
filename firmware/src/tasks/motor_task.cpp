@@ -140,9 +140,9 @@ void MotorTask::run() {
 
                     // Change haptic input mode
                     bool position_updated = false;
-                    if (new_config.initial_position != new_config.initial_position
-                            || new_config.sub_position_unit != new_config.sub_position_unit
-                            || new_config.position_nonce != new_config.position_nonce) {
+                    if (new_config.initial_position != config.initial_position
+                            || new_config.sub_position_unit != config.sub_position_unit
+                            || new_config.position_nonce != config.position_nonce) {
                         LOG_INFO("applying position change");
                         current_position = new_config.initial_position;
                         position_updated = true;
@@ -159,7 +159,7 @@ void MotorTask::run() {
                         }
                     }
 
-                    if (position_updated || new_config.position_width_radians != new_config.position_width_radians) {
+                    if (position_updated || new_config.position_width_radians != config.position_width_radians) {
                         LOG_INFO("adjusting detent center");
                         float new_sub_position = position_updated ? new_config.sub_position_unit : latest_sub_position_unit;
                         #if SK_INVERT_ROTATION
@@ -180,14 +180,14 @@ void MotorTask::run() {
                     // get runaway due to sensor noise & lag)).
                     // TODO: consider eliminating this D factor entirely and just "play" a hardcoded haptic "click" (e.g. a quick burst of torque in each
                     // direction) whenever the position changes when the detent width is too small for the P factor to work well.
-                    const float derivative_lower_strength = new_config.detent_strength_unit * 0.08;
-                    const float derivative_upper_strength = new_config.detent_strength_unit * 0.02;
+                    const float derivative_lower_strength = config.detent_strength_unit * 0.08;
+                    const float derivative_upper_strength = config.detent_strength_unit * 0.02;
                     const float derivative_position_width_lower = radians(3);
                     const float derivative_position_width_upper = radians(8);
-                    const float raw = derivative_lower_strength + (derivative_upper_strength - derivative_lower_strength)/(derivative_position_width_upper - derivative_position_width_lower)*(new_config.position_width_radians - derivative_position_width_lower);
+                    const float raw = derivative_lower_strength + (derivative_upper_strength - derivative_lower_strength)/(derivative_position_width_upper - derivative_position_width_lower)*(config.position_width_radians - derivative_position_width_lower);
                     // When there are intermittent detents (set via detent_positions), disable derivative factor as this adds extra "clicks" when nearing
                     // a detent.
-                    motor_.PID_velocity.D = new_config.detent_positions_count > 0 ? 0 : CLAMP(
+                    motor_.PID_velocity.D = config.detent_positions_count > 0 ? 0 : CLAMP(
                         raw,
                         min(derivative_lower_strength, derivative_upper_strength),
                         max(derivative_lower_strength, derivative_upper_strength)
