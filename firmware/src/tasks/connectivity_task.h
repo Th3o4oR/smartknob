@@ -30,7 +30,7 @@ struct ColorData { uint8_t r, g, b; };
 struct BrightnessData { int brightness; };
 struct PlayPauseData { bool paused; };
 struct SkipData { bool forward; };
-struct VolumeData { int volume; };
+struct VolumeData { float volume; }; // Volume is a float in range [0.0, 1.0]
 
 enum class MQTTSubscriptionType {
     LIGHTING,

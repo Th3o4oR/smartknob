@@ -7,8 +7,8 @@
 #include "tasks/motor_task.h"
 #include "tasks/connectivity_task.h"
 
-static constexpr uint32_t VOLUME_MIN = 0;
-static constexpr uint32_t VOLUME_MAX = 40;
+static constexpr float VOLUME_MIN = 0.0f;
+static constexpr float VOLUME_MAX = 0.5f;
 
 static constexpr uint32_t VOLUME_UPDATE_COOLDOWN_MS = 1000; // Cooldown from the last time the lights page published a brightness value, until it will update its own brightness from received MQTT messages
 static constexpr uint32_t VOLUME_PUBLISH_FREQUENCY_MS = 500; // Frequency at which the lights page will publish its position to MQTT

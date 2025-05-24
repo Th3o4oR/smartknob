@@ -4,6 +4,21 @@ PB_SmartKnobConfig * VolumePage::getPageConfig() {
     return &config_;
 }
 
+float positionToVolume(int32_t position, PB_SmartKnobConfig config) {
+    float mapped = mapf(position, config.min_position, config.max_position, VOLUME_MIN, VOLUME_MAX); // in-min, in-max, out-min, out-max
+    return mapped;
+}
+int32_t volumeToPosition(uint8_t volume, PB_SmartKnobConfig config) {
+    // Alert if volume is out of range
+    if (volume < VOLUME_MIN || volume > VOLUME_MAX) {
+        assert(false); // TODO: Handle this case, include logging
+    }
+
+    float mapped = mapf(volume, VOLUME_MIN, VOLUME_MAX, config.min_position, config.max_position); // in-min, in-max, out-min, out-max
+    int32_t position = round(mapped);
+    return position;
+}
+
 // void VolumePage::checkForBrightnessUpdates(PB_SmartKnobState &state, PB_SmartKnobConfig &config) {
 //     BrightnessData brightness_data;
 //     if (xQueueReceive(incoming_volume_queue_, &brightness_data, 0) != pdTRUE) {
@@ -30,22 +45,6 @@ PB_SmartKnobConfig * VolumePage::getPageConfig() {
 //     last_published_position_ = new_position;
 // }
 
-uint8_t positionToVolume(int32_t position, PB_SmartKnobConfig config) {
-    float mapped = mapf(position, config.min_position, config.max_position, VOLUME_MIN, VOLUME_MAX); // in-min, in-max, out-min, out-max
-    uint8_t volume = round(mapped);
-    return volume;
-}
-int32_t volumeToPosition(uint8_t volume, PB_SmartKnobConfig config) {
-    // Alert if volume is out of range
-    if (volume < VOLUME_MIN || volume > VOLUME_MAX) {
-        assert(false); // TODO: Handle this case, include logging
-    }
-
-    float mapped = mapf(volume, VOLUME_MIN, VOLUME_MAX, config.min_position, config.max_position); // in-min, in-max, out-min, out-max
-    int32_t position = round(mapped);
-    return position;
-}
-
 void VolumePage::handleState(PB_SmartKnobState state) {
     // Incoming
     // checkForBrightnessUpdates(state, config_);
@@ -54,7 +53,7 @@ void VolumePage::handleState(PB_SmartKnobState state) {
     if (last_published_position_ != state.current_position) {
         if (millis() - last_publish_time_ > VOLUME_PUBLISH_FREQUENCY_MS) {
             LOG_INFO(
-                "VOLUME: Publishing position to MQTT: %d (volume: %d)",
+                "VOLUME: Publishing position to MQTT: %d (volume: %f)",
                 state.current_position,
                 positionToVolume(state.current_position, config_)
             );
