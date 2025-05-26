@@ -9,7 +9,32 @@ void MainMenuPage::handleMenuInput(int position) {
     {
     case 0:
         if (page_change_callback_) {
-            page_change_callback_(LIGHTS_PAGE);
+            page_change_callback_(LIGHTS_PAGE_RED);
+        }
+        break;
+    case 1:
+        if (page_change_callback_) {
+            page_change_callback_(LIGHTS_PAGE_YELLOW);
+        }
+        break;
+    case 2:
+        if (page_change_callback_) {
+            page_change_callback_(LIGHTS_PAGE_GREEN);
+        }
+        break;
+    case 3:
+        if (page_change_callback_) {
+            page_change_callback_(LIGHTS_PAGE_AQUA);
+        }
+        break;
+    case 4:
+        if (page_change_callback_) {
+            page_change_callback_(LIGHTS_PAGE_BLUE);
+        }
+        break;
+    case 5:
+        if (page_change_callback_) {
+            page_change_callback_(LIGHTS_PAGE_PURPLE);
         }
         break;
     case 6:

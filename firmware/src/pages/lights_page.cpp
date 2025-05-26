@@ -49,7 +49,7 @@ void LightsPage::handleState(PB_SmartKnobState state) {
         if (millis() - last_publish_time_ > MQTT_PUBLISH_FREQUENCY_MS) {
             LOG_INFO("LIGHTS: Publishing position to MQTT: %d (brightness: %d)", state.current_position, positionToBrightness(state.current_position, config_));
             Message msg = {
-                .trigger_name = "lights",
+                .trigger_name = trigger_name_.data(),
                 .trigger_value = positionToBrightness(state.current_position, config_)
             };
             connectivity_task_.sendMqttMessage(msg);

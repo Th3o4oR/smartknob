@@ -65,13 +65,20 @@ void DialView::updateView(PB_SmartKnobState state) {
         || (previous_state_.config.min_position != state.config.min_position)
         || (previous_state_.config.max_position != state.config.max_position);
     previous_state_ = state;
+    
+    // Calculate lvgl HSV from FastLED HSV, which is uint8_t for all three components
+    // TODO: This does not need to be recalculated every frame
+    const uint16_t h = (state.config.led_hue * 360) / 255; // Convert FastLED hue (0-255) to LVGL hue (0-360)
+    const uint8_t  s = 100; // 0-100
+    const uint8_t  v = 75;  // 0-100
+    const lv_color_t color = lv_color_hsv_to_rgb(h, s, v);
 
     if (num_positions > 1) {
         int32_t target_fill_height = 255 - state.current_position * 255 / (num_positions - 1);
         animated_fill_height = (config_changed) ? target_fill_height : lerp(animated_fill_height, target_fill_height, 0.25);
-        set_screen_gradient((int32_t)roundf(animated_fill_height));
+        set_screen_gradient((int32_t)roundf(animated_fill_height), color);
     } else {
-        set_screen_gradient(255);
+        set_screen_gradient(255, color);
     }
 
     lv_label_set_text_fmt(label_cur_pos, "%d", state.current_position);
