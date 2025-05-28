@@ -4,10 +4,32 @@
 #include "../proto_gen/smartknob.pb.h"
 
 typedef enum {
-    VIEW_CIRCLE_MENU          = 0,
+    VIEW_CIRCLE_MENU = 0,
     VIEW_LIST_MENU,
-    VIEW_DIAL
+    VIEW_DIAL,
+    VIEW_SLIDER,
 } view_t;
+
+// Icons (codepoints) from Google Fonts, https://fonts.google.com/icons
+#define ICON_GEAR          "\ue8b8"
+#define ICON_BACK_ARROW    "\ue5c4"
+#define ICON_ELLIPSIS      "\ue5d3"
+#define ICON_NOTE_STACK    "\uf562"
+
+#define ICON_CEILING_LAMP  "\uf02a"
+
+#define ICON_PLAY_PAUSE    "\uf137"
+#define ICON_SKIP_NEXT     "\ue044"
+#define ICON_SKIP_PREV     "\ue045"
+
+#define ICON_VOLUME_OFF    "\ue710"
+#define ICON_VOLUME_MUTE   "\ue04e"
+#define ICON_VOLUME_DOWN   "\ue04d"
+#define ICON_VOLUME_UP     "\ue050"
+
+#define ICON_TIMER         "\ue425"
+#define ICON_ROLLER_SHADES "\uec12"
+#define ICON_THERMOSTAT    "\ue1ff"
 
 class View {
     public:

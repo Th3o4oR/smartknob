@@ -52,4 +52,4 @@ typedef struct
 
 }
 
-#endif
+#endif // TLV493D_BUSIF_H_INCLUDED

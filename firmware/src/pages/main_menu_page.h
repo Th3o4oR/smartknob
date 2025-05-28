@@ -2,11 +2,27 @@
 
 #include "page.h"
 #include "views/view.h"
-#include "../motor_task.h"
+#include "views/circle_menu_view.h"
+
+#include "tasks/motor_task.h"
+
+// Needs to match the entries defined below
+enum class MainMenu {
+    SETTINGS,
+    MORE,
+    MEDIA,
+    BEDROOM_LIGHTS,
+    TIMER,
+    // DESK_LIGHTS,
+    SHADES,
+    HEATING,
+
+    _MAX
+};
 
 class MainMenuPage : public Page {
     public:
-        MainMenuPage() : Page() {}
+        MainMenuPage(PageContext& context) : Page(context) {}
 
         ~MainMenuPage(){}
 
@@ -18,43 +34,18 @@ class MainMenuPage : public Page {
         void handleMenuInput(int position);  
 
         PB_ViewConfig view_config = {
-            VIEW_CIRCLE_MENU,
+            .view_type = VIEW_CIRCLE_MENU,
             "Main menu",
-            .menu_entries_count = 8,
-            .menu_entries = 
-            {
-                {
-                    "Desk\nlights",
-                    "\ue0f0"
-                },
-                {
-                    "Room\nlights",
-                    "\uf02a"
-                },
-                {
-                    "Shades",
-                    "\uec12"
-                },
-                {
-                    "Heating",
-                    "\ue1ff"
-                },
-                {
-                    "Media",
-                    "\uf137"
-                },
-                {
-                    "Timer",
-                    "\ue425"
-                },
-                {
-                    "Settings",
-                    "\ue8b8"
-                },
-                {
-                    "More",
-                    "\ue5d3"
-                }
+            .menu_entries_count = static_cast<int>(MainMenu::_MAX),
+            .menu_entries = {
+                { "Settings",        ICON_GEAR          },
+                { "More",            ICON_ELLIPSIS      },
+                { "Media",           ICON_PLAY_PAUSE    },
+                { "Bedroom\nlights", ICON_CEILING_LAMP  },
+                { "Timer",           ICON_TIMER         },
+                // { "Desk\nlights",    ICON_CEILING_LAMP  },
+                { "Shades",          ICON_ROLLER_SHADES },
+                { "Heating",         ICON_THERMOSTAT    },
             }
         };
 
@@ -62,16 +53,16 @@ class MainMenuPage : public Page {
         {
             .has_view_config = true,
             .view_config = view_config,
-            .initial_position = 0,
+            .initial_position = 3,
             .sub_position_unit = 0,
             .position_nonce = 0,
             .min_position = 0,
-            .max_position = 7,
+            .max_position = static_cast<int>(MainMenu::_MAX) - 1,
             .infinite_scroll = true,
-            .position_width_radians = 45 * PI / 180,
-            .detent_strength_unit = 0.5,
-            .endstop_strength_unit = 1,
-            .snap_point = 0.51,
+            .position_width_radians = 2 * PI / static_cast<int>(MainMenu::_MAX),
+            .detent_strength_unit = CircleMenuView::DETENT_STRENGTH_UNIT,
+            .endstop_strength_unit = CircleMenuView::ENDSTOP_STRENGTH_UNIT,
+            .snap_point = CircleMenuView::SNAP_POINT,
             .detent_positions_count = 0,
             .detent_positions = {},
             .snap_point_bias = 0,

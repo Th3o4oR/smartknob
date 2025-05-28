@@ -1,5 +1,6 @@
-
 #pragma once
+
+#include <Arduino.h>
 
 template <typename T> T CLAMP(const T& value, const T& low, const T& high) 
 {
@@ -8,7 +9,12 @@ template <typename T> T CLAMP(const T& value, const T& low, const T& high)
 
 #define COUNT_OF(A) (sizeof(A) / sizeof(A[0]))
 
-float lerp(const float value, const float inMin, const float inMax, const float min, const float max);
+float mapf(float x, float in_min, float in_max, float out_min, float out_max);
+float clamp(float min, float max, float value);
+float lerp_approx(float a, float b, float f);
+float exp_decay(float a, float b, float decay, float dt);
+
+// TODO: The arduino library already has functions for degtorat and radtodeg
 
 template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));

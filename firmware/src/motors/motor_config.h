@@ -6,4 +6,4 @@
 #include "motors/mad2804.h"
 #else
 #error "No motor configuration specified!"
-#endif
+#endif // MOTOR_WANZHIDA_ONCE_TOP

@@ -1,12 +1,15 @@
 #if SK_DISPLAY
+
 #include "display_task.h"
 #include "semaphore_guard.h"
 #include "CST816D.h"
+
 #include "views/view.h"
 #include "views/styles.h"
 #include "views/circle_menu_view.h"
 #include "views/list_menu_view.h"
 #include "views/dial_view.h"
+#include "views/slider_view.h"
 
 static const uint8_t LEDC_CHANNEL_LCD_BACKLIGHT = 0;
 
@@ -42,7 +45,7 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
     data->point.y = touchY;
   }
 }
-#endif
+#endif // SK_TOUCH
 
 DisplayTask::DisplayTask(const uint8_t task_core, const uint32_t stack_depth) : Task{"Display", stack_depth, 1, task_core} {
   display_task_ = this;
@@ -136,7 +139,7 @@ void DisplayTask::run() {
 
     #if SK_TOUCH
     touch.begin();
-    #endif
+    #endif // SK_TOUCH
 
     ledcSetup(LEDC_CHANNEL_LCD_BACKLIGHT, 5000, SK_BACKLIGHT_BIT_DEPTH); // Set up a signal at 5000 Hz, with the resolution defined in the ini file
     ledcAttachPin(PIN_LCD_BACKLIGHT, LEDC_CHANNEL_LCD_BACKLIGHT);
@@ -162,7 +165,7 @@ void DisplayTask::run() {
     indev_drv.type = LV_INDEV_TYPE_POINTER;
     indev_drv.read_cb = my_touchpad_read;
     lv_indev_drv_register(&indev_drv);
-    #endif
+    #endif // SK_TOUCH
   
     screen = lv_scr_act();
     lv_obj_add_event_cb(screen, gesture_event_cb, LV_EVENT_GESTURE, NULL);
@@ -175,6 +178,7 @@ void DisplayTask::run() {
     CircleMenuView circleMenuView = CircleMenuView(screen, display_task_);
     ListMenuView listMenuView = ListMenuView(screen, display_task_);
     DialView dialView = DialView(screen, display_task_);
+    SliderView sliderView = SliderView(screen, display_task_);
 
     while(1) {
         PB_SmartKnobState state;
@@ -195,15 +199,24 @@ void DisplayTask::run() {
 
         if (config_change) {
           clear_screen();
-          if (state.config.view_config.view_type == VIEW_CIRCLE_MENU) {
-            current_view = &circleMenuView;
+          switch (state.config.view_config.view_type) {
+            case VIEW_SLIDER:
+              current_view = &sliderView;
+              break;
+            case VIEW_DIAL:
+              current_view = &dialView;
+              break;
+            case VIEW_CIRCLE_MENU:
+              current_view = &circleMenuView;
+              break;
+            case VIEW_LIST_MENU:
+              current_view = &listMenuView;
+              break;
+            default:
+              LOG_ERROR("Unknown view type: %d", state.config.view_config.view_type);
+              assert(0);
           }
-          if (state.config.view_config.view_type == VIEW_LIST_MENU) {
-            current_view = &listMenuView;
-          }
-          if (state.config.view_config.view_type == VIEW_DIAL) {
-            current_view = &dialView;
-          }
+          LOG_INFO("Switching to view %d", state.config.view_config.view_type);
           current_view->setupView(state.config);
         }
 
@@ -247,4 +260,4 @@ void DisplayTask::setI2CMutex(SemaphoreHandle_t * mutex) {
     i2c_mutex_ = mutex;
 }
 
-#endif
+#endif // SK_DISPLAY

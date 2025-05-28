@@ -8,11 +8,11 @@
 #include "lvgl.h"
 #else
 #include "lvgl/lvgl.h"
-#endif
+#endif // LV_LVGL_H_INCLUDE_SIMPLE
 
 #ifndef MDI_40
 #define MDI_40 1
-#endif
+#endif // MDI_40
 
 #if MDI_40
 
@@ -65618,13 +65618,13 @@ static const lv_font_fmt_txt_cmap_t cmaps[] =
 #if LVGL_VERSION_MAJOR == 8
 /*Store all the custom data of the font*/
 static  lv_font_fmt_txt_glyph_cache_t cache;
-#endif
+#endif // LVGL_VERSION_MAJOR == 8
 
 #if LVGL_VERSION_MAJOR >= 8
 static const lv_font_fmt_txt_dsc_t font_dsc = {
 #else
 static lv_font_fmt_txt_dsc_t font_dsc = {
-#endif
+#endif // LVGL_VERSION_MAJOR >= 8
     .glyph_bitmap = glyph_bitmap,
     .glyph_dsc = glyph_dsc,
     .cmaps = cmaps,
@@ -65636,7 +65636,7 @@ static lv_font_fmt_txt_dsc_t font_dsc = {
     .bitmap_format = 0,
 #if LVGL_VERSION_MAJOR == 8
     .cache = &cache
-#endif
+#endif // LVGL_VERSION_MAJOR == 8
 };
 
 
@@ -65650,22 +65650,22 @@ static lv_font_fmt_txt_dsc_t font_dsc = {
 const lv_font_t mdi_40 = {
 #else
 lv_font_t mdi_40 = {
-#endif
+#endif // LVGL_VERSION_MAJOR >= 8
     .get_glyph_dsc = lv_font_get_glyph_dsc_fmt_txt,    /*Function pointer to get glyph's data*/
     .get_glyph_bitmap = lv_font_get_bitmap_fmt_txt,    /*Function pointer to get glyph's bitmap*/
     .line_height = 41,          /*The maximum line height required by the font*/
     .base_line = 1,             /*Baseline measured from the bottom of the line*/
 #if !(LVGL_VERSION_MAJOR == 6 && LVGL_VERSION_MINOR == 0)
     .subpx = LV_FONT_SUBPX_NONE,
-#endif
+#endif // !(LVGL_VERSION_MAJOR == 6 && LVGL_VERSION_MINOR == 0)
 #if LV_VERSION_CHECK(7, 4, 0) || LVGL_VERSION_MAJOR >= 8
     .underline_position = 0,
     .underline_thickness = 0,
-#endif
+#endif // LV_VERSION_CHECK(7, 4, 0) || LVGL_VERSION_MAJOR >= 8
     .dsc = &font_dsc,          /*The custom font data. Will be accessed by `get_glyph_bitmap/dsc` */
 #if LV_VERSION_CHECK(8, 2, 0) || LVGL_VERSION_MAJOR >= 9
     .fallback = NULL,
-#endif
+#endif // LV_VERSION_CHECK(8, 2, 0) || LVGL_VERSION_MAJOR >= 9
     .user_data = NULL,
 };
 

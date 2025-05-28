@@ -7,7 +7,7 @@
 #include "tlv_sensor.h"
 #elif SENSOR_MAQ430
 #include "maq430_sensor.h"
-#endif
+#endif // SENSOR_MT6701
 
 #include "motors/motor_config.h"
 #include "util.h"
@@ -31,10 +31,12 @@ static const float IDLE_CORRECTION_RATE_ALPHA = 0.0005;
 
 
 MotorTask::MotorTask(const uint8_t task_core, const uint32_t stack_depth, Configuration& configuration)
-    : Task("Motor", stack_depth, 1, task_core), configuration_(configuration) {
-    queue_ = xQueueCreate(5, sizeof(Command));
-    assert(queue_ != NULL);
-}
+    : Task("Motor", stack_depth, 1, task_core)
+    , configuration_(configuration)
+    , command_bus_()
+    , command_sender_(command_bus_.queue())
+    , command_receiver_(command_bus_.queue())
+    {}
 
 MotorTask::~MotorTask() {}
 
@@ -45,12 +47,12 @@ MotorTask::~MotorTask() {}
     MT6701Sensor encoder = MT6701Sensor();
 #elif SENSOR_MAQ430
     MagneticSensorSPI encoder = MagneticSensorSPI(MAQ430_SPI, PIN_MAQ_SS);
-#endif
+#endif // SENSOR_TLV, SENSOR_MT6701, SENSOR_MAQ430
 
 void MotorTask::run() {
 
-    driver.voltage_power_supply = 5;
-    driver.init();
+    motor_driver_.voltage_power_supply = 5;
+    motor_driver_.init();
 
     #if SENSOR_TLV
     encoder.init(&Wire, false);
@@ -60,41 +62,41 @@ void MotorTask::run() {
     SPIClass* spi = new SPIClass(HSPI);
     spi->begin(PIN_MAQ_SCK, PIN_MAQ_MISO, PIN_MAQ_MOSI, PIN_MAQ_SS);
     encoder.init(spi);
-    #endif
+    #endif // SENSOR_TLV, SENSOR_MT6701, SENSOR_MAQ430
 
-    motor.linkDriver(&driver);
+    motor_.linkDriver(&motor_driver_);
 
-    motor.controller = MotionControlType::torque;
-    motor.voltage_limit = FOC_VOLTAGE_LIMIT;
-    motor.velocity_limit = 10000;
-    motor.linkSensor(&encoder);
+    motor_.controller = MotionControlType::torque;
+    motor_.voltage_limit = FOC_VOLTAGE_LIMIT;
+    motor_.velocity_limit = 10000;
+    motor_.linkSensor(&encoder);
 
     // Not actually using the velocity loop built into SimpleFOC; but I'm using those PID variables
     // to run PID for torque (and SimpleFOC studio supports updating them easily over serial for tuning)
-    motor.PID_velocity.P = FOC_PID_P;
-    motor.PID_velocity.I = FOC_PID_I;
-    motor.PID_velocity.D = FOC_PID_D;
-    motor.PID_velocity.output_ramp = FOC_PID_OUTPUT_RAMP;
-    motor.PID_velocity.limit = FOC_PID_LIMIT;
+    motor_.PID_velocity.P = FOC_PID_P;
+    motor_.PID_velocity.I = FOC_PID_I;
+    motor_.PID_velocity.D = FOC_PID_D;
+    motor_.PID_velocity.output_ramp = FOC_PID_OUTPUT_RAMP;
+    motor_.PID_velocity.limit = FOC_PID_LIMIT;
 
     #ifdef FOC_LPF
     motor.LPF_angle.Tf = FOC_LPF;
-    #endif
+    #endif // FOC_LPF
 
-    motor.init();
+    motor_.init();
 
     encoder.update();
     delay(10);
 
     PB_PersistentConfiguration c = configuration_.get();
-    motor.pole_pairs = c.motor.calibrated ? c.motor.pole_pairs : 7;
-    motor.initFOC(c.motor.zero_electrical_offset, c.motor.direction_cw ? Direction::CW : Direction::CCW);
+    motor_.pole_pairs = c.motor.calibrated ? c.motor.pole_pairs : 7;
+    motor_.initFOC(c.motor.zero_electrical_offset, c.motor.direction_cw ? Direction::CW : Direction::CCW);
 
-    motor.monitor_downsample = 0; // disable monitor at first - optional
+    motor_.monitor_downsample = 0; // disable monitor at first - optional
 
     // disableCore0WDT();
 
-    float current_detent_center = motor.shaft_angle;
+    float current_detent_center = motor_.shaft_angle;
     PB_SmartKnobConfig config = {
         .initial_position = 0,
         .sub_position_unit = 0,
@@ -112,37 +114,28 @@ void MotorTask::run() {
     uint32_t last_publish = 0;
 
     while (1) {
-        motor.loopFOC();
+        motor_.loopFOC();
 
-        // Check queue for pending requests from other tasks
-        Command command;
-        if (xQueueReceive(queue_, &command, 0) == pdTRUE) {
-            switch (command.command_type) {
-                case CommandType::CALIBRATE:
+        // Receive and handle commands from other tasks
+        MotorCommand::Message command;
+        if (command_receiver_.receive(command)) {
+            auto visitor = overload {
+                [&](const MotorCommand::Calibrate&) {
                     calibrate();
-                    break;
-                case CommandType::CONFIG: {
+                },
+                [&](const MotorCommand::SetConfig& c) {
+                    const PB_SmartKnobConfig& new_config = c.config;
+
                     // Check new config for validity
-                    PB_SmartKnobConfig& new_config = command.data.config;
-                    if (new_config.detent_strength_unit < 0) {
-                        LOG_WARN("Ignoring invalid config: detent_strength_unit cannot be negative");
-                        break;
-                    }
-                    if (new_config.endstop_strength_unit < 0) {
-                        LOG_WARN("Ignoring invalid config: endstop_strength_unit cannot be negative");
-                        break;
-                    }
-                    if (new_config.snap_point < 0.5) {
-                        LOG_WARN("Ignoring invalid config: snap_point must be >= 0.5 for stability");
-                        break;
-                    }
-                    if (new_config.detent_positions_count > COUNT_OF(new_config.detent_positions)) {
-                        LOG_WARN("Ignoring invalid config: detent_positions_count is too large");
-                        break;
-                    }
-                    if (new_config.snap_point_bias < 0) {
-                        LOG_WARN("Ignoring invalid config: snap_point_bias cannot be negative or there is risk of instability");
-                        break;
+                    assert(new_config.detent_strength_unit >= 0);
+                    assert(new_config.endstop_strength_unit >= 0);
+                    assert(new_config.snap_point >= 0.5);
+                    assert(new_config.detent_positions_count <= COUNT_OF(new_config.detent_positions));
+                    assert(new_config.snap_point_bias >= 0);
+                    assert(new_config.position_width_radians >= 0);
+                    if (new_config.min_position < new_config.max_position) {
+                        // If the minimum position is greater than the maximum position, the bounds are disabled
+                        assert(new_config.initial_position >= new_config.min_position && new_config.initial_position <= new_config.max_position);
                     }
 
                     // Change haptic input mode
@@ -172,8 +165,8 @@ void MotorTask::run() {
                         #if SK_INVERT_ROTATION
                             float shaft_angle = -motor.shaft_angle;
                         #else
-                            float shaft_angle = motor.shaft_angle;
-                        #endif
+                            float shaft_angle = motor_.shaft_angle;
+                        #endif // SK_INVERT_ROTATION
                         current_detent_center = shaft_angle + new_sub_position * new_config.position_width_radians;
                     }
                     config = new_config;
@@ -194,35 +187,38 @@ void MotorTask::run() {
                     const float raw = derivative_lower_strength + (derivative_upper_strength - derivative_lower_strength)/(derivative_position_width_upper - derivative_position_width_lower)*(config.position_width_radians - derivative_position_width_lower);
                     // When there are intermittent detents (set via detent_positions), disable derivative factor as this adds extra "clicks" when nearing
                     // a detent.
-                    motor.PID_velocity.D = config.detent_positions_count > 0 ? 0 : CLAMP(
+                    motor_.PID_velocity.D = config.detent_positions_count > 0 ? 0 : CLAMP(
                         raw,
                         min(derivative_lower_strength, derivative_upper_strength),
                         max(derivative_lower_strength, derivative_upper_strength)
                     );
-                    break;
-                }
-                case CommandType::HAPTIC: {
+                },
+                [&](const MotorCommand::PlayHaptic& h) {
                     // Play a hardcoded haptic "click"
-                    float strength = command.data.haptic.press ? 5 : 1.5;
-                    motor.move(strength);
+                    float strength = h.press ? 5 : 1.5;
+                    motor_.move(strength);
                     for (uint8_t i = 0; i < 3; i++) {
-                        motor.loopFOC();
+                        motor_.loopFOC();
                         delay(1);
                     }
-                    motor.move(-strength);
+                    motor_.move(-strength);
                     for (uint8_t i = 0; i < 3; i++) {
-                        motor.loopFOC();
+                        motor_.loopFOC();
                         delay(1);
                     }
-                    motor.move(0);
-                    motor.loopFOC();
-                    break;
-                }
-            }
+                    motor_.move(0);
+                    motor_.loopFOC();
+                },
+                [&](const MotorCommand::RegisterStateListener& r) {
+                    // Register a listener for state updates
+                    listeners_.push_back(r.queue);
+                },
+            };
+            std::visit(visitor, command);
         }
 
         // If we are not moving and we're close to the center (but not exactly there), slowly adjust the centerpoint to match the current position
-        idle_check_velocity_ewma = motor.shaft_velocity * IDLE_VELOCITY_EWMA_ALPHA + idle_check_velocity_ewma * (1 - IDLE_VELOCITY_EWMA_ALPHA);
+        idle_check_velocity_ewma = motor_.shaft_velocity * IDLE_VELOCITY_EWMA_ALPHA + idle_check_velocity_ewma * (1 - IDLE_VELOCITY_EWMA_ALPHA);
         if (fabsf(idle_check_velocity_ewma) > IDLE_VELOCITY_RAD_PER_SEC) {
             last_idle_start = 0;
         } else {
@@ -230,8 +226,8 @@ void MotorTask::run() {
                 last_idle_start = millis();
             }
         }
-        if (last_idle_start > 0 && millis() - last_idle_start > IDLE_CORRECTION_DELAY_MILLIS && fabsf(motor.shaft_angle - current_detent_center) < IDLE_CORRECTION_MAX_ANGLE_RAD) {
-            current_detent_center = motor.shaft_angle * IDLE_CORRECTION_RATE_ALPHA + current_detent_center * (1 - IDLE_CORRECTION_RATE_ALPHA);
+        if (last_idle_start > 0 && millis() - last_idle_start > IDLE_CORRECTION_DELAY_MILLIS && fabsf(motor_.shaft_angle - current_detent_center) < IDLE_CORRECTION_MAX_ANGLE_RAD) {
+            current_detent_center = motor_.shaft_angle * IDLE_CORRECTION_RATE_ALPHA + current_detent_center * (1 - IDLE_CORRECTION_RATE_ALPHA);
         }
 
         // // Log current motor state
@@ -267,10 +263,10 @@ void MotorTask::run() {
         // }
 
         // Check where we are relative to the current nearest detent; update our position if we've moved far enough to snap to another detent
-        float angle_to_detent_center = motor.shaft_angle - current_detent_center;  // Positive means the physical sensor is to the "right" of the detent center
+        float angle_to_detent_center = motor_.shaft_angle - current_detent_center;  // Positive means the physical sensor is to the "right" of the detent center
         #if SK_INVERT_ROTATION
             angle_to_detent_center = -motor.shaft_angle - current_detent_center;
-        #endif
+        #endif // SK_INVERT_ROTATION
 
         float snap_point_radians = config.position_width_radians * config.snap_point;
         float bias_radians = config.position_width_radians * config.snap_point_bias;
@@ -304,14 +300,14 @@ void MotorTask::run() {
             fminf(config.position_width_radians*DEAD_ZONE_DETENT_PERCENT, DEAD_ZONE_RAD));
 
         bool out_of_bounds = num_positions > 0 && !config.infinite_scroll && ((angle_to_detent_center > 0 && current_position == config.max_position) || (angle_to_detent_center < 0 && current_position == config.min_position));
-        motor.PID_velocity.limit = 10; //out_of_bounds ? 10 : 3;
-        motor.PID_velocity.P = out_of_bounds ? config.endstop_strength_unit * 4 : config.detent_strength_unit * 4;
+        motor_.PID_velocity.limit = 10; //out_of_bounds ? 10 : 3;
+        motor_.PID_velocity.P = out_of_bounds ? config.endstop_strength_unit * 4 : config.detent_strength_unit * 4;
 
 
         // Apply motor torque based on our angle to the nearest detent (detent strength, etc is handled by the PID_velocity parameters)
-        if (fabsf(motor.shaft_velocity) > 60) {
+        if (fabsf(motor_.shaft_velocity) > 60) {
             // Don't apply torque if velocity is too high (helps avoid positive feedback loop/runaway)
-            motor.move(0);
+            motor_.move(0);
         } else {
             float input = -angle_to_detent_center + dead_zone_adjustment;
             if (!out_of_bounds && config.detent_positions_count > 0) {
@@ -326,11 +322,11 @@ void MotorTask::run() {
                     input = 0;
                 }
             }
-            float torque = motor.PID_velocity(input);
+            float torque = motor_.PID_velocity(input);
             #if SK_INVERT_ROTATION
                 torque = -torque;
-            #endif
-            motor.move(torque);
+            #endif // SK_INVERT_ROTATION
+            motor_.move(torque);
         }
 
         // Publish current status to other registered tasks periodically
@@ -349,41 +345,16 @@ void MotorTask::run() {
 }
 
 void MotorTask::setConfig(const PB_SmartKnobConfig& config) {
-    Command command = {
-        .command_type = CommandType::CONFIG,
-        .data = {
-            .config = config,
-        }
-    };
-    xQueueSend(queue_, &command, portMAX_DELAY);
+    command_sender_.publish(MotorCommand::SetConfig{config});
 }
-
-
 void MotorTask::playHaptic(bool press) {
-    Command command = {
-        .command_type = CommandType::HAPTIC,
-        .data = {
-            .haptic = {
-                .press = press,
-            },
-        }
-    };
-    xQueueSend(queue_, &command, portMAX_DELAY);
+    command_sender_.publish(MotorCommand::PlayHaptic{press});
 }
-
 void MotorTask::runCalibration() {
-    Command command = {
-        .command_type = CommandType::CALIBRATE,
-        .data = {
-            .unused = 0,
-        }
-    };
-    xQueueSend(queue_, &command, portMAX_DELAY);
+    command_sender_.publish(MotorCommand::Calibrate{});
 }
-
-
-void MotorTask::addListener(QueueHandle_t queue) {
-    listeners_.push_back(queue);
+void MotorTask::registerStateListener(QueueHandle_t queue) {
+    command_sender_.publish(MotorCommand::RegisterStateListener{queue});
 }
 
 void MotorTask::publish(const PB_SmartKnobState& state) {
@@ -401,26 +372,26 @@ void MotorTask::calibrate() {
     LOG_INFO("\n\n\nStarting calibration, please DO NOT TOUCH MOTOR until complete!");
     delay(1000);
 
-    motor.controller = MotionControlType::angle_openloop;
-    motor.pole_pairs = 1;
-    motor.initFOC(0, Direction::CW);
+    motor_.controller = MotionControlType::angle_openloop;
+    motor_.pole_pairs = 1;
+    motor_.initFOC(0, Direction::CW);
 
     float a = 0;
 
-    motor.voltage_limit = FOC_VOLTAGE_LIMIT;
-    motor.move(a);
+    motor_.voltage_limit = FOC_VOLTAGE_LIMIT;
+    motor_.move(a);
 
     // #### Determine direction motor rotates relative to angle sensor
     for (uint8_t i = 0; i < 200; i++) {
         encoder.update();
-        motor.move(a);
+        motor_.move(a);
         delay(1);
     }
     float start_sensor = encoder.getAngle();
 
     for (; a < 3 * _2PI; a += 0.01) {
         encoder.update();
-        motor.move(a);
+        motor_.move(a);
         delay(1);
     }
 
@@ -431,8 +402,8 @@ void MotorTask::calibrate() {
     float end_sensor = encoder.getAngle();
 
 
-    motor.voltage_limit = 0;
-    motor.move(a);
+    motor_.voltage_limit = 0;
+    motor_.move(a);
 
     LOG_INFO("");
 
@@ -445,10 +416,10 @@ void MotorTask::calibrate() {
     LOG_INFO("Sensor measures positive for positive motor rotation:");
     if (end_sensor > start_sensor) {
         LOG_INFO("YES, Direction=CW");
-        motor.initFOC(0, Direction::CW);
+        motor_.initFOC(0, Direction::CW);
     } else {
         LOG_WARN("NO, Direction=CCW");
-        motor.initFOC(0, Direction::CCW);
+        motor_.initFOC(0, Direction::CCW);
     }
     LOG_INFO("  (start was %.1f, end was %.1f)", start_sensor, end_sensor);
 
@@ -456,13 +427,13 @@ void MotorTask::calibrate() {
     // Rotate 20 electrical revolutions and measure mechanical angle traveled, to calculate pole-pairs
     uint8_t electrical_revolutions = 20;
     LOG_INFO("Going to measure %d electrical revolutions...", electrical_revolutions);
-    motor.voltage_limit = FOC_VOLTAGE_LIMIT;
-    motor.move(a);
+    motor_.voltage_limit = FOC_VOLTAGE_LIMIT;
+    motor_.move(a);
     LOG_INFO("Going to electrical zero...");
     float destination = a + _2PI;
     for (; a < destination; a += 0.03) {
         encoder.update();
-        motor.move(a);
+        motor_.move(a);
         delay(1);
     }
     LOG_INFO("pause..."); // Let momentum settle...
@@ -472,23 +443,23 @@ void MotorTask::calibrate() {
     }
     LOG_INFO("Measuring...");
 
-    start_sensor = motor.sensor_direction * encoder.getAngle();
+    start_sensor = motor_.sensor_direction * encoder.getAngle();
     destination = a + electrical_revolutions * _2PI;
     for (; a < destination; a += 0.03) {
         encoder.update();
-        motor.move(a);
+        motor_.move(a);
         delay(1);
     }
     for (uint16_t i = 0; i < 1000; i++) {
         encoder.update();
-        motor.move(a);
+        motor_.move(a);
         delay(1);
     }
-    end_sensor = motor.sensor_direction * encoder.getAngle();
-    motor.voltage_limit = 0;
-    motor.move(a);
+    end_sensor = motor_.sensor_direction * encoder.getAngle();
+    motor_.voltage_limit = 0;
+    motor_.move(a);
 
-    if (fabsf(motor.shaft_angle - motor.target) > 1 * PI / 180) {
+    if (fabsf(motor_.shaft_angle - motor_.target) > 1 * PI / 180) {
         LOG_ERROR("Motor did not reach target!");
         while(1) {}
     }
@@ -509,21 +480,21 @@ void MotorTask::calibrate() {
 
     // #### Determine mechanical offset to electrical zero
     // Measure mechanical angle at every electrical zero for several revolutions
-    motor.voltage_limit = FOC_VOLTAGE_LIMIT;
-    motor.move(a);
+    motor_.voltage_limit = FOC_VOLTAGE_LIMIT;
+    motor_.move(a);
     float offset_x = 0;
     float offset_y = 0;
     float destination1 = (floor(a / _2PI) + measured_pole_pairs / 2.) * _2PI;
     float destination2 = (floor(a / _2PI)) * _2PI;
     for (; a < destination1; a += 0.4) {
-        motor.move(a);
+        motor_.move(a);
         delay(100);
         for (uint8_t i = 0; i < 100; i++) {
             encoder.update();
             delay(1);
         }
         float real_electrical_angle = _normalizeAngle(a);
-        float measured_electrical_angle = _normalizeAngle( (float)(motor.sensor_direction * measured_pole_pairs) * encoder.getMechanicalAngle()  - 0);
+        float measured_electrical_angle = _normalizeAngle( (float)(motor_.sensor_direction * measured_pole_pairs) * encoder.getMechanicalAngle()  - 0);
 
         float offset_angle = measured_electrical_angle - real_electrical_angle;
         offset_x += cosf(offset_angle);
@@ -532,14 +503,14 @@ void MotorTask::calibrate() {
         LOG_INFO("%.2f, %.2f, %.2f", degrees(real_electrical_angle), degrees(measured_electrical_angle), degrees(_normalizeAngle(offset_angle)));
     }
     for (; a > destination2; a -= 0.4) {
-        motor.move(a);
+        motor_.move(a);
         delay(100);
         for (uint8_t i = 0; i < 100; i++) {
             encoder.update();
             delay(1);
         }
         float real_electrical_angle = _normalizeAngle(a);
-        float measured_electrical_angle = _normalizeAngle( (float)(motor.sensor_direction * measured_pole_pairs) * encoder.getMechanicalAngle()  - 0);
+        float measured_electrical_angle = _normalizeAngle( (float)(motor_.sensor_direction * measured_pole_pairs) * encoder.getMechanicalAngle()  - 0);
 
         float offset_angle = measured_electrical_angle - real_electrical_angle;
         offset_x += cosf(offset_angle);
@@ -547,35 +518,35 @@ void MotorTask::calibrate() {
 
         LOG_INFO("%.2f, %.2f, %.2f", degrees(real_electrical_angle), degrees(measured_electrical_angle), degrees(_normalizeAngle(offset_angle)));
     }
-    motor.voltage_limit = 0;
-    motor.move(a);
+    motor_.voltage_limit = 0;
+    motor_.move(a);
 
     float avg_offset_angle = atan2f(offset_y, offset_x);
 
 
     // #### Apply settings
-    motor.pole_pairs = measured_pole_pairs;
-    motor.zero_electric_angle = avg_offset_angle + _3PI_2;
-    motor.voltage_limit = FOC_VOLTAGE_LIMIT;
-    motor.controller = MotionControlType::torque;
+    motor_.pole_pairs = measured_pole_pairs;
+    motor_.zero_electric_angle = avg_offset_angle + _3PI_2;
+    motor_.voltage_limit = FOC_VOLTAGE_LIMIT;
+    motor_.controller = MotionControlType::torque;
 
     LOG_INFO("");
     LOG_INFO("RESULTS:");
-    LOG_INFO("  ZERO_ELECTRICAL_OFFSET: %.2f", motor.zero_electric_angle);
-    if (motor.sensor_direction == Direction::CW) {
+    LOG_INFO("  ZERO_ELECTRICAL_OFFSET: %.2f", motor_.zero_electric_angle);
+    if (motor_.sensor_direction == Direction::CW) {
         LOG_INFO("  FOC_DIRECTION: Direction::CW");
     } else {
         LOG_INFO("  FOC_DIRECTION: Direction::CCW");
     }
-    LOG_INFO("  MOTOR_POLE_PAIRS: %d", motor.pole_pairs);
+    LOG_INFO("  MOTOR_POLE_PAIRS: %d", motor_.pole_pairs);
 
     LOG_INFO("");
     LOG_INFO("Saving to persistent configuration...");
     PB_MotorCalibration calibration = {
         .calibrated = true,
-        .zero_electrical_offset = motor.zero_electric_angle,
-        .direction_cw = motor.sensor_direction == Direction::CW,
-        .pole_pairs = motor.pole_pairs,
+        .zero_electrical_offset = motor_.zero_electric_angle,
+        .direction_cw = motor_.sensor_direction == Direction::CW,
+        .pole_pairs = motor_.pole_pairs,
     };
     if (configuration_.setMotorCalibrationAndSave(calibration)) {
         LOG_SUCCESS("Success!");
@@ -592,5 +563,5 @@ void MotorTask::checkSensorError() {
     if (error.error) {
         LOG_ERROR("CRC error. Received %d; calculated %d", error.received_crc, error.calculated_crc);
     }
-#endif
+#endif // SENSOR_TLV, SENSOR_MT6701
 }

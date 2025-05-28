@@ -1,7 +1,8 @@
 #pragma once
 
 #include "view.h"
-#include "display_task.h"
+#include "util.h"
+#include "tasks/display_task.h"
 #include "proto_gen/smartknob.pb.h"
 
 class DialView: public View {
@@ -17,6 +18,14 @@ class DialView: public View {
 
     private:
         PB_SmartKnobState previous_state_;
+
+        // Assume that the bounds don't change, so we can calculate them once
+        float range_radians_;
+        float left_bound_rad_;
+        float right_bound_rad_;
+        float left_bound_deg_;
+        float right_bound_deg_;
+        int32_t num_positions_;
 
         DisplayTask* display_task_;
         lv_obj_t * screen_;

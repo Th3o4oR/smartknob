@@ -56,7 +56,7 @@ void MT6701Sensor::init() {
     esp_err_t ret = spi_bus_initialize(SPI3_HOST, &tx_bus_config, SPI_DMA_CH_AUTO);
   #else
     esp_err_t ret = spi_bus_initialize(HSPI_HOST, &tx_bus_config, 1);
-  #endif
+  #endif // CONFIG_IDF_TARGET_ESP32S3
   
   ESP_ERROR_CHECK(ret);
 
@@ -80,7 +80,7 @@ void MT6701Sensor::init() {
     ret=spi_bus_add_device(SPI3_HOST, &tx_device_config, &spi_device_);
   #else
     ret=spi_bus_add_device(HSPI_HOST, &tx_device_config, &spi_device_);
-  #endif
+  #endif // CONFIG_IDF_TARGET_ESP32S3
   
   ESP_ERROR_CHECK(ret);
 
@@ -138,4 +138,4 @@ MT6701Error MT6701Sensor::getAndClearError() {
   return out;
 }
 
-#endif
+#endif // SENSOR_MT6701
