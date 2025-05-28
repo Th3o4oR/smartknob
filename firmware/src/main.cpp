@@ -49,25 +49,25 @@ Configuration config;
     connectivity: 1008 free -> (4500-1008) = 3492 used
 */
 
-#if SK_DISPLAY
-static DisplayTask display_task(DISPLAY_TASK_CORE, DISPLAY_TASK_STACK_DEPTH);
-static DisplayTask* display_task_p = &display_task;
-#else
-static DisplayTask* display_task_p = nullptr;
-#endif // SK_DISPLAY
-static MotorTask motor_task(MOTOR_TASK_CORE, MOTOR_TASK_STACK_DEPTH, config);
-static ConnectivityTask connectivity_task(CONNECTIVITY_TASK_CORE, CONNECTIVITY_TASK_STACK_DEPTH);
-
-InterfaceTask interface_task(INTERFACE_TASK_CORE, INTERFACE_TASK_STACK_DEPTH, motor_task, display_task_p, connectivity_task);
-
 void setup() {
-    #if SK_DISPLAY
+#if SK_DISPLAY
+    static DisplayTask display_task(DISPLAY_TASK_CORE, DISPLAY_TASK_STACK_DEPTH);
+    static DisplayTask* display_task_p = &display_task;
+#else
+    static DisplayTask* display_task_p = nullptr; // No display task if SK_DISPLAY is not defined
+#endif // SK_DISPLAY
+
+    static MotorTask motor_task(MOTOR_TASK_CORE, MOTOR_TASK_STACK_DEPTH, config);
+    static ConnectivityTask connectivity_task(CONNECTIVITY_TASK_CORE, CONNECTIVITY_TASK_STACK_DEPTH);
+    static InterfaceTask interface_task(INTERFACE_TASK_CORE, INTERFACE_TASK_STACK_DEPTH, motor_task, display_task_p, connectivity_task);
+    
+#if SK_DISPLAY
     display_task.setLogger(&interface_task);
     display_task.begin();
 
     // Connect display to motor_task's knob state feed
     motor_task.registerStateListener(display_task.getKnobStateQueue());
-    #endif // SK_DISPLAY
+#endif // SK_DISPLAY
     
     config.setLogger(&interface_task);
     motor_task.setLogger(&interface_task);

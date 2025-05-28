@@ -37,10 +37,8 @@ Adafruit_VEML7700 veml = Adafruit_VEML7700();
  * Note on initialization order:
  * - The EventBus (page_event_bus_) must be explicitly initialized in the member initializer list.
  *   This ensures its internal FreeRTOS queue is created at a safe point in program execution.
- * - In C++, class member variables are constructed in the order they are declared in the class,
- *   *before* the body of the constructor is executed.
  * - If page_event_bus_ is not explicitly initialized in the initializer list, it will be
- *   default-constructed before the task is fully constructed or before the scheduler is ready.
+ *   default-constructed before the task is fully constructed or before the scheduler is ready, as shown in https://stackoverflow.com/a/9903262
  */
 InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth, MotorTask &motor_task, DisplayTask *display_task, ConnectivityTask &connectivity_task)
     : Task("Interface", stack_depth, 1, task_core)
