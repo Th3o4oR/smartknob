@@ -79,14 +79,9 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
 
         MainMenuPage main_menu_page_;
         MorePage more_page_;
+        LightsPage lights_page_;
         DemoPage demo_page_;
         SettingsPage settings_page_;
-        LightsPage lights_page_red_;
-        LightsPage lights_page_yellow_;
-        LightsPage lights_page_green_;
-        LightsPage lights_page_aqua_;
-        LightsPage lights_page_blue_;
-        LightsPage lights_page_purple_;
 
         userInput_t user_input_;
 

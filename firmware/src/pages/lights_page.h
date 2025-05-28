@@ -15,21 +15,12 @@ static constexpr uint32_t MQTT_PUBLISH_FREQUENCY_MS = 500; // Frequency at which
 
 class LightsPage : public Page {
     public:
-        LightsPage(
-                ConnectivityTask& connectivity_task,
-                const int16_t fastled_hue,
-                const char* trigger_name,
-                const char* description
-            )
+        LightsPage(ConnectivityTask &connectivity_task)
             : Page()
             , connectivity_task_(connectivity_task)
             , brightness_queue_(xQueueCreate(1, sizeof(uint8_t)))
             , state_queue_(xQueueCreate(1, sizeof(bool)))
-        {
-            config_.led_hue = fastled_hue;
-            snprintf(trigger_name_.data(), trigger_name_.size(), "%s", trigger_name);
-            snprintf(config_.view_config.description, 41, "%s", description); // TODO: Use std::array<char, 41> for description in PB_SmartKnobConfig
-        }
+            {}
 
         ~LightsPage() {}
 
@@ -45,8 +36,6 @@ class LightsPage : public Page {
         }
 
     private:
-        std::array<char, 10> trigger_name_;
-    
         ConnectivityTask &connectivity_task_;
 
         ConfigChangeCallback config_change_callback_;
@@ -62,8 +51,8 @@ class LightsPage : public Page {
             .has_view_config = true,
             .view_config =
             {
-                VIEW_DIAL,
-                "Lights" // Will be overwritten by the constructor
+                            VIEW_DIAL,
+                            "Bedroom lights"
             },
             .initial_position       = 50,
             .sub_position_unit      = 0,
@@ -78,6 +67,6 @@ class LightsPage : public Page {
             .detent_positions_count = 0,
             .detent_positions       = {},
             .snap_point_bias        = 0,
-            .led_hue                = 30 // Will be overwritten by the constructor
+            .led_hue                = 30
         };
 };

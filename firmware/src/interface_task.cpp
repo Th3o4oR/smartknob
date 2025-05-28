@@ -44,12 +44,7 @@ InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth
         }),
         main_menu_page_(),
         more_page_(),
-        lights_page_red_(connectivity_task_,    0,   "red",    "Red"), // Spectrum HSV values for fastleds: https://github.com/FastLED/FastLED/wiki/FastLED-HSV-Colors
-        lights_page_yellow_(connectivity_task_, 42,  "yellow", "Yellow"),
-        lights_page_green_(connectivity_task_,  85,  "green",  "Green"),
-        lights_page_aqua_(connectivity_task_,   128, "aqua",   "Aqua"),
-        lights_page_blue_(connectivity_task_,   171, "blue",   "Blue"),
-        lights_page_purple_(connectivity_task_, 213, "purple", "Purple"),
+        lights_page_(connectivity_task_),
         settings_page_([this] () {
             motor_task_.runCalibration();
         }),
@@ -61,12 +56,7 @@ InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth
         assert(display_task != nullptr);
     #endif
 
-    lights_page_red_.setLogger(this);
-    lights_page_purple_.setLogger(this);
-    lights_page_yellow_.setLogger(this);
-    lights_page_green_.setLogger(this);
-    lights_page_aqua_.setLogger(this);
-    lights_page_blue_.setLogger(this);
+    lights_page_.setLogger(this);
 
     log_queue_ = xQueueCreate(10, sizeof(std::string *));
     assert(log_queue_ != NULL);
@@ -116,18 +106,8 @@ void InterfaceTask::run() {
     #endif
 
     motor_task_.addListener(knob_state_queue_);
-    connectivity_task_.addBrightnessListener(lights_page_red_.getBrightnessQueue());
-    connectivity_task_.addBrightnessListener(lights_page_purple_.getBrightnessQueue());
-    connectivity_task_.addBrightnessListener(lights_page_yellow_.getBrightnessQueue());
-    connectivity_task_.addBrightnessListener(lights_page_green_.getBrightnessQueue());
-    connectivity_task_.addBrightnessListener(lights_page_aqua_.getBrightnessQueue());
-    connectivity_task_.addBrightnessListener(lights_page_blue_.getBrightnessQueue());
-    connectivity_task_.addStateListener(lights_page_red_.getStateQueue());
-    connectivity_task_.addStateListener(lights_page_purple_.getStateQueue());
-    connectivity_task_.addStateListener(lights_page_yellow_.getStateQueue());
-    connectivity_task_.addStateListener(lights_page_green_.getStateQueue());
-    connectivity_task_.addStateListener(lights_page_aqua_.getStateQueue());
-    connectivity_task_.addStateListener(lights_page_blue_.getStateQueue());
+    connectivity_task_.addBrightnessListener(lights_page_.getBrightnessQueue());
+    connectivity_task_.addStateListener(lights_page_.getStateQueue());
     display_task_ -> setListener(user_input_queue_);
 
     plaintext_protocol_.init(
@@ -196,12 +176,7 @@ void InterfaceTask::run() {
         { SETTINGS_PAGE,  &settings_page_  },
         { MORE_PAGE,      &more_page_      },
         { DEMO_PAGE,      &demo_page_      },
-        { LIGHTS_PAGE_RED,    &lights_page_red_    },
-        { LIGHTS_PAGE_YELLOW, &lights_page_yellow_ },
-        { LIGHTS_PAGE_GREEN,  &lights_page_green_  },
-        { LIGHTS_PAGE_AQUA,   &lights_page_aqua_   },
-        { LIGHTS_PAGE_BLUE,   &lights_page_blue_   },
-        { LIGHTS_PAGE_PURPLE, &lights_page_purple_ }
+        { LIGHTS_PAGE,    &lights_page_    }
     };
     Page* current_page = NULL;
     PageChangeCallback page_change_callback = [this, &current_page, &page_map] (page_t page) {
@@ -231,22 +206,7 @@ void InterfaceTask::run() {
     }
 
     // Assign special callbacks to some pages
-    lights_page_red_.setConfigChangeCallback([this] (PB_SmartKnobConfig *config) {
-        applyConfig(*config, false);
-    });
-    lights_page_purple_.setConfigChangeCallback([this] (PB_SmartKnobConfig *config) {
-        applyConfig(*config, false);
-    });
-    lights_page_yellow_.setConfigChangeCallback([this] (PB_SmartKnobConfig *config) {
-        applyConfig(*config, false);
-    });
-    lights_page_green_.setConfigChangeCallback([this] (PB_SmartKnobConfig *config) {
-        applyConfig(*config, false);
-    });
-    lights_page_aqua_.setConfigChangeCallback([this] (PB_SmartKnobConfig *config) {
-        applyConfig(*config, false);
-    });
-    lights_page_blue_.setConfigChangeCallback([this] (PB_SmartKnobConfig *config) {
+    lights_page_.setConfigChangeCallback([this] (PB_SmartKnobConfig *config) {
         applyConfig(*config, false);
     });
 

@@ -24,27 +24,27 @@ class MainMenuPage : public Page {
             .menu_entries = 
             {
                 {
-                    "Red",
+                    "Desk\nlights",
                     "\ue0f0"
                 },
                 {
-                    "Yellow",
+                    "Room\nlights",
                     "\uf02a"
                 },
                 {
-                    "Green",
+                    "Shades",
                     "\uec12"
                 },
                 {
-                    "Aqua",
+                    "Heating",
                     "\ue1ff"
                 },
                 {
-                    "Blue",
+                    "Media",
                     "\uf137"
                 },
                 {
-                    "Purple",
+                    "Timer",
                     "\ue425"
                 },
                 {

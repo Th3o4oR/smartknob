@@ -9,16 +9,10 @@
 
 typedef enum {
     MAIN_MENU_PAGE = 0,
-    // LIGHTS_PAGE,
+    LIGHTS_PAGE,
     SETTINGS_PAGE,
     MORE_PAGE,
     DEMO_PAGE,
-    LIGHTS_PAGE_RED,
-    LIGHTS_PAGE_YELLOW,
-    LIGHTS_PAGE_GREEN,
-    LIGHTS_PAGE_AQUA,
-    LIGHTS_PAGE_BLUE,
-    LIGHTS_PAGE_PURPLE,
 } page_t;
 
 /**
