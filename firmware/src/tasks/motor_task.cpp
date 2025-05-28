@@ -187,7 +187,7 @@ void MotorTask::run() {
                     const float raw = derivative_lower_strength + (derivative_upper_strength - derivative_lower_strength)/(derivative_position_width_upper - derivative_position_width_lower)*(config.position_width_radians - derivative_position_width_lower);
                     // When there are intermittent detents (set via detent_positions), disable derivative factor as this adds extra "clicks" when nearing
                     // a detent.
-                    motor_.PID_velocity.D = config.detent_positions_count > 0 ? 0 : CLAMP(
+                    motor_.PID_velocity.D = config.detent_positions_count > 0 ? 0 : std::clamp(
                         raw,
                         min(derivative_lower_strength, derivative_upper_strength),
                         max(derivative_lower_strength, derivative_upper_strength)
@@ -294,7 +294,7 @@ void MotorTask::run() {
 
         latest_sub_position_unit = angle_to_detent_center / config.position_width_radians;
 
-        float dead_zone_adjustment = CLAMP(
+        float dead_zone_adjustment = std::clamp(
             angle_to_detent_center,
             fmaxf(-config.position_width_radians*DEAD_ZONE_DETENT_PERCENT, -DEAD_ZONE_RAD),
             fminf(config.position_width_radians*DEAD_ZONE_DETENT_PERCENT, DEAD_ZONE_RAD));

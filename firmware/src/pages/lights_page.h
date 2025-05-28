@@ -8,8 +8,8 @@
 #include "tasks/connectivity_task.h"
 #include "tasks/interface_task.h"
 
-static constexpr uint32_t BRIGHTNESS_MIN = 0;
-static constexpr uint32_t BRIGHTNESS_MAX = 255;
+static constexpr uint8_t BRIGHTNESS_MIN = 0;
+static constexpr uint8_t BRIGHTNESS_MAX = 255;
 
 static constexpr uint32_t BRIGHTNESS_UPDATE_COOLDOWN_MS = 1000; // Cooldown from the last time the lights page published a brightness value, until it will update its own brightness from received MQTT messages
 static constexpr uint32_t BRIGHTNESS_PUBLISH_FREQUENCY_MS = 500; // Frequency at which the lights page will publish its position to MQTT

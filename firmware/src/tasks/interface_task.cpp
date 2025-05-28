@@ -311,7 +311,13 @@ void InterfaceTask::updateHardware() {
 
         if (configuration_loaded_ && configuration_value_.has_strain && strain_calibration_step_ == 0) {
             // TODO: calibrate and track (long term moving average) idle point (lower)
-            press_value_unit = mapf(strain_reading_, configuration_value_.strain.idle_value, configuration_value_.strain.idle_value + configuration_value_.strain.press_delta, 0, 1);
+            press_value_unit = remap<float>(
+                strain_reading_,
+                configuration_value_.strain.idle_value,
+                configuration_value_.strain.idle_value + configuration_value_.strain.press_delta,
+                0.0f,
+                1.0f
+            );
 
             // Ignore readings that are way out of expected bounds
             if (-1 < press_value_unit && press_value_unit < 2) {
@@ -355,7 +361,7 @@ void InterfaceTask::updateHardware() {
     uint16_t brightness = UINT16_MAX;
 // TODO: brightness scale factor should be configurable (depends on reflectivity of surface)
 #if SK_ALS
-    brightness = (uint16_t)CLAMP(lux_avg * 13000, (float)1280, (float)UINT16_MAX);
+    brightness = (uint16_t)std::clamp(lux_avg * 13000, (float)1280, (float)UINT16_MAX);
 #endif // SK_ALS
 
 #if SK_DISPLAY
@@ -364,7 +370,7 @@ void InterfaceTask::updateHardware() {
 
 #if SK_LEDS
     for (uint8_t i = 0; i < NUM_LEDS; i++) {
-        leds[i].setHSV(latest_config_.led_hue, 255 - 180 * CLAMP(press_value_unit, (float)0, (float)1) - 75 * pressed, brightness >> 8);
+        leds[i].setHSV(latest_config_.led_hue, 255 - 180 * std::clamp(press_value_unit, (float)0, (float)1) - 75 * pressed, brightness >> 8);
 
         // Gamma adjustment
         leds[i].r = dim8_video(leds[i].r);

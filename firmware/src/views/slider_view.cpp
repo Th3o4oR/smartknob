@@ -116,22 +116,22 @@ void SliderView::updateView(PB_SmartKnobState state) {
     TickType_t current_tick = xTaskGetTickCount();
     TickType_t delta_tick = current_tick - tick;
     tick = current_tick; // Update the tick for the next frame
-    float dt = (float)delta_tick / configTICK_RATE_HZ; // Convert to seconds
+    float dt = static_cast<float>(delta_tick) / configTICK_RATE_HZ; // Convert to seconds
 
     constexpr float decay_slow = 20.0f; // Decay factor for the exponential decay function
     constexpr float decay_fast = 35.0f; // Faster decay for the dot when past bounds
     static float decay = decay_slow;
     static float first_control_point = adjusted_angle_rad;
     static float second_control_point = adjusted_angle_rad;
-    first_control_point = exp_decay(first_control_point, adjusted_angle_rad, decay, dt);
-    second_control_point = exp_decay(second_control_point, first_control_point, decay, dt);
-    float dot_angle_rad = clamp(second_control_point, right_bound_rad_, left_bound_rad_);
+    first_control_point = exp_decay<float>(first_control_point, adjusted_angle_rad, decay, dt);
+    second_control_point = exp_decay<float>(second_control_point, first_control_point, decay, dt);
+    float dot_angle_rad = std::clamp(second_control_point, right_bound_rad_, left_bound_rad_);
 
     if (num_positions_ > 0 && !state.config.infinite_scroll && (past_minimum || past_maximum)) {
         decay = decay_fast;
 
-        const bool dot_at_right_bound = fabs(dot_angle_rad - right_bound_rad_) < 0.01f; // Allow a small margin of error
-        const bool dot_at_left_bound  = fabs(dot_angle_rad - left_bound_rad_) < 0.01f; // Allow a small margin of error
+        const bool dot_at_right_bound = fabs(dot_angle_rad - right_bound_rad_) < 0.01f;
+        const bool dot_at_left_bound  = fabs(dot_angle_rad - left_bound_rad_) < 0.01f;
         if (dot_at_right_bound && raw_angle_offset_deg < adjusted_angle_offset_deg) {
             lv_obj_clear_flag(arc, LV_OBJ_FLAG_HIDDEN);
             lv_arc_set_rotation(arc, 270 + left_bound_deg_);
@@ -145,7 +145,7 @@ void SliderView::updateView(PB_SmartKnobState state) {
         }
     } else {
         lv_obj_add_flag(arc, LV_OBJ_FLAG_HIDDEN);
-        decay = decay_slow; // Reset decay to the default value
+        decay = decay_slow;
     }
 
     arc_dot_set_angle(arc_dot, dot_angle_rad, ARC_DOT_PADDING, 0);
