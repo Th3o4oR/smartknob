@@ -10,7 +10,7 @@ void DemoPage::handleUserInput(input_t input, int input_data, PB_SmartKnobState 
     case INPUT_BACK:
     {
         current_config_ = 0;
-        pageChange(PageType::MORE_PAGE);
+        pageChange(PageID::MORE);
         break;
     }
     case INPUT_NEXT:
@@ -31,7 +31,7 @@ void DemoPage::handleUserInput(input_t input, int input_data, PB_SmartKnobState 
             configChange(configs_[current_config_]);
         } else {
             current_config_ = 0;
-            pageChange(PageType::MORE_PAGE);
+            pageChange(PageID::MORE);
         }
         break;
     }

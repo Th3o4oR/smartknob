@@ -77,13 +77,13 @@ InterfaceTask::InterfaceTask(const uint8_t task_core, const uint32_t stack_depth
         .event_bus = page_event_sender_,
         .logger    = this
     };
-    page_map_[PageType::MAIN_MENU_PAGE]  = std::make_unique<MainMenuPage>(page_context_);
-    page_map_[PageType::SETTINGS_PAGE]   = std::make_unique<SettingsPage>(page_context_);
-    page_map_[PageType::MEDIA_MENU_PAGE] = std::make_unique<MediaMenuPage>(page_context_, connectivity_task_);
-    page_map_[PageType::VOLUME_PAGE]     = std::make_unique<VolumePage>(page_context_, connectivity_task_);
-    page_map_[PageType::MORE_PAGE]       = std::make_unique<MorePage>(page_context_);
-    page_map_[PageType::DEMO_PAGE]       = std::make_unique<DemoPage>(page_context_);
-    page_map_[PageType::LIGHTS_PAGE]     = std::make_unique<LightsPage>(page_context_, connectivity_task_);
+    page_map_[PageID::MAIN_MENU]  = std::make_unique<MainMenuPage>(page_context_);
+    page_map_[PageID::SETTINGS]   = std::make_unique<SettingsPage>(page_context_);
+    page_map_[PageID::MEDIA_MENU] = std::make_unique<MediaMenuPage>(page_context_, connectivity_task_);
+    page_map_[PageID::VOLUME]     = std::make_unique<VolumePage>(page_context_, connectivity_task_);
+    page_map_[PageID::MORE]       = std::make_unique<MorePage>(page_context_);
+    page_map_[PageID::DEMO]       = std::make_unique<DemoPage>(page_context_);
+    page_map_[PageID::LIGHTS]     = std::make_unique<LightsPage>(page_context_, connectivity_task_);
 
     motor_task_.registerStateListener(knob_state_queue_);
     display_task_->setListener(user_input_queue_);
@@ -193,7 +193,7 @@ void InterfaceTask::run() {
     size_t monitored_tasks_count = sizeof(monitored_tasks) / sizeof(TaskMonitor);
 
     // Set initial page
-    changePage(PageType::MAIN_MENU_PAGE);
+    changePage(PageID::MAIN_MENU);
 
     // Interface loop:
     while (1) {
@@ -406,7 +406,7 @@ uint8_t InterfaceTask::incrementPositionNonce() {
  *
  * @param page The requested page
  */
-void InterfaceTask::changePage(PageType page) {
+void InterfaceTask::changePage(PageID page) {
     auto it = this->page_map_.find(page);
     if (it == this->page_map_.end()) {
         LOG_ERROR("Unknown page requested");

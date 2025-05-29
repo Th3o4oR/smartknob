@@ -10,19 +10,19 @@
 
 #include "logger.h"
 
-enum class PageType {
-    MAIN_MENU_PAGE = 0,
-    LIGHTS_PAGE,
-    SETTINGS_PAGE,
-    MORE_PAGE,
-    DEMO_PAGE,
-    MEDIA_MENU_PAGE,
-    VOLUME_PAGE,
+enum class PageID : uint8_t {
+    MAIN_MENU = 0,
+    LIGHTS,
+    SETTINGS,
+    MORE,
+    DEMO,
+    MEDIA_MENU,
+    VOLUME,
 };
 
 namespace PageEvent {
     struct PageChange {
-        PageType new_page;
+        PageID new_page;
     };
     struct ConfigChange {
         PB_SmartKnobConfig config;
@@ -65,7 +65,7 @@ class Page {
     protected:
         EventSender<PageEvent::Message>& event_bus_;
 
-        void pageChange(PageType page) {
+        void pageChange(PageID page) {
             event_bus_.publish(PageEvent::PageChange{page});
         }
         void configChange(PB_SmartKnobConfig& config) {

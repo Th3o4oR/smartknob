@@ -26,7 +26,7 @@ void VolumePage::handleUserInput(input_t input, int input_data, PB_SmartKnobStat
     case INPUT_BACK:
     case INPUT_FORWARD:
     {
-        pageChange(PageType::MEDIA_MENU_PAGE);
+        pageChange(PageID::MEDIA_MENU);
         break;
     }
     default:

@@ -50,7 +50,7 @@ void LightsPage::handleUserInput(input_t input, int input_data, PB_SmartKnobStat
     case INPUT_BACK:
     case INPUT_FORWARD:
     {
-        pageChange(PageType::MAIN_MENU_PAGE);
+        pageChange(PageID::MAIN_MENU);
         break;
     }
     default:

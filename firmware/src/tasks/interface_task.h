@@ -43,7 +43,7 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
 
         void log(const std::string& msg) override;
         void setConfiguration(Configuration* configuration);
-        void changePage(PageType page);
+        void changePage(PageID page);
         uint8_t incrementPositionNonce();
         
         void monitorStackAndHeapUsage(const TaskMonitor* tasks, size_t count);
@@ -87,7 +87,7 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
         SerialProtocolPlaintext plaintext_protocol_;
         SerialProtocolProtobuf proto_protocol_;
 
-        std::map<PageType, std::unique_ptr<Page>> page_map_;
+        std::map<PageID, std::unique_ptr<Page>> page_map_;
         Page* current_page_ = nullptr;
         EventBusCore<PageEvent::Message> page_event_bus_;
         EventSender<PageEvent::Message> page_event_sender_;
