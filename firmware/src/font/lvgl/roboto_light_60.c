@@ -8,11 +8,11 @@
 #include "lvgl.h"
 #else
 #include "lvgl/lvgl.h"
-#endif
+#endif // LVGL_VERSION_CHECK(8, 0, 0)
 
 #ifndef ROBOTO_LIGHT_60
 #define ROBOTO_LIGHT_60 1
-#endif
+#endif // ROBOTO_LIGHT_60
 
 #if ROBOTO_LIGHT_60
 
@@ -6223,7 +6223,7 @@ static  lv_font_fmt_txt_glyph_cache_t cache;
 static const lv_font_fmt_txt_dsc_t font_dsc = {
 #else
 static lv_font_fmt_txt_dsc_t font_dsc = {
-#endif
+#endif // LV_VERSION_CHECK(8, 0, 0)
     .glyph_bitmap = glyph_bitmap,
     .glyph_dsc = glyph_dsc,
     .cmaps = cmaps,
@@ -6235,7 +6235,7 @@ static lv_font_fmt_txt_dsc_t font_dsc = {
     .bitmap_format = 0,
 #if LV_VERSION_CHECK(8, 0, 0)
     .cache = &cache
-#endif
+#endif // LV_VERSION_CHECK(8, 0, 0)
 };
 
 
@@ -6248,18 +6248,18 @@ static lv_font_fmt_txt_dsc_t font_dsc = {
 const lv_font_t roboto_light_60 = {
 #else
 lv_font_t roboto_light_60 = {
-#endif
+#endif // LV_VERSION_CHECK(8, 0, 0)
     .get_glyph_dsc = lv_font_get_glyph_dsc_fmt_txt,    /*Function pointer to get glyph's data*/
     .get_glyph_bitmap = lv_font_get_bitmap_fmt_txt,    /*Function pointer to get glyph's bitmap*/
     .line_height = 63,          /*The maximum line height required by the font*/
     .base_line = 14,             /*Baseline measured from the bottom of the line*/
 #if !(LVGL_VERSION_MAJOR == 6 && LVGL_VERSION_MINOR == 0)
     .subpx = LV_FONT_SUBPX_NONE,
-#endif
+#endif // !(LVGL_VERSION_MAJOR == 6 && LVGL_VERSION_MINOR == 0)
 #if LV_VERSION_CHECK(7, 4, 0) || LVGL_VERSION_MAJOR >= 8
     .underline_position = -4,
     .underline_thickness = 3,
-#endif
+#endif // LV_VERSION_CHECK(7, 4, 0) || LVGL_VERSION_MAJOR >= 8
     .dsc = &font_dsc           /*The custom font data. Will be accessed by `get_glyph_bitmap/dsc` */
 };
 

@@ -5,69 +5,58 @@ PB_SmartKnobConfig * MainMenuPage::getPageConfig() {
 }
 
 void MainMenuPage::handleMenuInput(int position) {
-    switch (position)
-    {
-    case 0:
-        if (page_change_callback_) {
-            page_change_callback_(LIGHTS_PAGE_RED);
+    auto menu_item = static_cast<MainMenu>(position); // Convert the position to the corresponding menu item
+    switch (menu_item) {
+        case MainMenu::RED_LIGHTS: {
+            pageChange(PageID::LIGHTS_RED);
+            break;
         }
-        break;
-    case 1:
-        if (page_change_callback_) {
-            page_change_callback_(LIGHTS_PAGE_YELLOW);
+        case MainMenu::YELLOW_LIGHTS: {
+            pageChange(PageID::LIGHTS_YELLOW);
+            break;
         }
-        break;
-    case 2:
-        if (page_change_callback_) {
-            page_change_callback_(LIGHTS_PAGE_GREEN);
-        }
-        break;
-    case 3:
-        if (page_change_callback_) {
-            page_change_callback_(LIGHTS_PAGE_AQUA);
-        }
-        break;
-    case 4:
-        if (page_change_callback_) {
-            page_change_callback_(LIGHTS_PAGE_BLUE);
-        }
-        break;
-    case 5:
-        if (page_change_callback_) {
-            page_change_callback_(LIGHTS_PAGE_PURPLE);
-        }
-        break;
-    case 6:
-        if (page_change_callback_) {
-            page_change_callback_(SETTINGS_PAGE);
-        }
-        break;
-    case 7:
-        if (page_change_callback_) {
-            page_change_callback_(MORE_PAGE);
-        }
-        break;
-    
-    default:
-        break;
+        case MainMenu::GREEN_LIGHTS: {
+                pageChange(PageID::LIGHTS_GREEN);
+                break;
+            }
+        case MainMenu::BLUE_LIGHTS: {
+                pageChange(PageID::LIGHTS_BLUE);
+                break;
+            }
+        case MainMenu::PURPLE_LIGHTS: {
+                pageChange(PageID::LIGHTS_PURPLE);
+                break;
+            }
+        case MainMenu::SETTINGS: {
+                pageChange(PageID::SETTINGS);
+                break;
+            }
+        case MainMenu::MORE: {
+                pageChange(PageID::MORE);
+                break;
+            }
+        case MainMenu::MEDIA: {
+                pageChange(PageID::MEDIA_MENU);
+                break;
+            }
+        default:
+            // Handle other menu items or do nothing
+            break;
     }
 }
 
 void MainMenuPage::handleUserInput(input_t input, int input_data, PB_SmartKnobState state) {
-    switch (input)
-    {
-    case INPUT_FORWARD:
-    {
-        int current_position = state.current_position;
-        handleMenuInput(current_position);
-        break;
-    }    
-    case INPUT_WITH_DATA:
-    {
-        handleMenuInput(input_data);
-        break;
-    }
-    default:
-        break;
+    switch (input) {
+        case INPUT_FORWARD: {
+            int current_position = state.current_position;
+            handleMenuInput(current_position);
+            break;
+        }    
+        case INPUT_WITH_DATA: {
+            handleMenuInput(input_data);
+            break;
+        }
+        default:
+            break;
     }
 }

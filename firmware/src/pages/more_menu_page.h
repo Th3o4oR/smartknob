@@ -1,10 +1,21 @@
+#pragma once
+
 #include "page.h"
-#include "../motor_task.h"
 #include "views/view.h"
+#include "views/circle_menu_view.h"
+
+#include "tasks/motor_task.h"
+
+enum class MoreMenu {
+    BACK = 0,
+    DEMO_CONFIGS,
+
+    _MAX
+};
 
 class MorePage : public Page {
     public:
-        MorePage() : Page() {}
+        MorePage(PageContext& context) : Page(context) {}
 
         ~MorePage(){}
 
@@ -19,16 +30,9 @@ class MorePage : public Page {
             VIEW_CIRCLE_MENU,
             "More",
             .menu_entries_count = 2,
-            .menu_entries = 
-            {
-                {
-                    "Back",
-                    "\ue5c4"
-                },
-                {
-                    "Demo\nconfigs",
-                    "\uf562"
-                }
+            .menu_entries = {
+                { "Back",          ICON_BACK_ARROW },
+                { "Demo\nconfigs", ICON_NOTE_STACK },
             }
         };
 
@@ -40,12 +44,12 @@ class MorePage : public Page {
             .sub_position_unit = 0,
             .position_nonce = 1,
             .min_position = 0,
-            .max_position = 1,
+            .max_position = static_cast<int>(MoreMenu::_MAX) - 1,
             .infinite_scroll = false,
-            .position_width_radians = 45 * PI / 180,
-            .detent_strength_unit = 0.5,
-            .endstop_strength_unit = 1,
-            .snap_point = 0.51,
+            .position_width_radians = 2 * PI / CircleMenuView::MAX_BUTTONS,
+            .detent_strength_unit = CircleMenuView::DETENT_STRENGTH_UNIT,
+            .endstop_strength_unit = CircleMenuView::ENDSTOP_STRENGTH_UNIT,
+            .snap_point = CircleMenuView::SNAP_POINT,
             .detent_positions_count = 0,
             .detent_positions = {},
             .snap_point_bias = 0,

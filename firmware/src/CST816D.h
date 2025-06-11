@@ -38,4 +38,4 @@ private:
     void i2c_write(uint8_t addr, uint8_t data);
     uint8_t i2c_write_continuous(uint8_t addr, const uint8_t *data, uint32_t length);
 };
-#endif
+#endif // _CST816D_H

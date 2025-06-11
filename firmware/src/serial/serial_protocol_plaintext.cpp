@@ -49,8 +49,14 @@ void SerialProtocolPlaintext::loop() {
     }
 }
 
-void SerialProtocolPlaintext::init(DemoConfigChangeCallback demo_config_change_callback, StrainCalibrationCallback strain_calibration_callback) {
+void SerialProtocolPlaintext::init(
+    DemoConfigChangeCallback demo_config_change_callback
+    , StrainCalibrationCallback strain_calibration_callback
+    , MotorCalibrationCallback motor_calibration_callback
+) {
     demo_config_change_callback_ = demo_config_change_callback;
     strain_calibration_callback_ = strain_calibration_callback;
+    motor_calibration_callback_ = motor_calibration_callback;
+
     stream_.println("SmartKnob starting!\n\nSerial mode: plaintext\nPress 'C' at any time to calibrate motor/sensor.\nPress 'S' at any time to calibrate strain sensors.\nPress <Space> to change haptic modes.\n");
 }

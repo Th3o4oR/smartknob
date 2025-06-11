@@ -1,87 +1,64 @@
 #include "connectivity_task.h"
-#include "WiFi.h"
-#include <Adafruit_MQTT.h>
-#include "Adafruit_MQTT_Client.h"
-#include "ArduinoJson.h"
-#include "secrets.h"
 
 WiFiClient client;
 
-Adafruit_MQTT_Client mqtt(&client, MQTT_SERVER, MQTT_SERVERPORT, MQTT_USERNAME, MQTT_PW);
+Adafruit_MQTT_Client  mqtt(&client, MQTT_SERVER, MQTT_SERVERPORT, MQTT_USERNAME, MQTT_PW);
+Adafruit_MQTT_Publish feed_pub_discovery = Adafruit_MQTT_Publish(&mqtt, TOPIC_DISCOVERY);
 
-String smartknob_id = String(SMARTKNOB_ID);
+Adafruit_MQTT_Publish feed_pub_lighting   = Adafruit_MQTT_Publish(&mqtt, TOPIC_PUBLISH_LIGHTING);
+Adafruit_MQTT_Publish feed_pub_play_pause = Adafruit_MQTT_Publish(&mqtt, TOPIC_PUBLISH_PLAY_PAUSE);
+Adafruit_MQTT_Publish feed_pub_skip       = Adafruit_MQTT_Publish(&mqtt, TOPIC_PUBLISH_SKIP);
+Adafruit_MQTT_Publish feed_pub_volume     = Adafruit_MQTT_Publish(&mqtt, TOPIC_PUBLISH_VOLUME);
 
-String                discovery_topic = "homeassistant/device_automation/knob_" + smartknob_id + "/action_knob/config";
-String                action_topic    = "knob/" + smartknob_id + "/action";
-String                light_topic     = "zigbee2mqtt/Bed facing";
-Adafruit_MQTT_Publish discovery_feed  = Adafruit_MQTT_Publish(&mqtt, discovery_topic.c_str());
-Adafruit_MQTT_Publish action_feed     = Adafruit_MQTT_Publish(&mqtt, action_topic.c_str());
-Adafruit_MQTT_Subscribe light_feed    = Adafruit_MQTT_Subscribe(&mqtt, light_topic.c_str());
+Adafruit_MQTT_Subscribe feed_sub_lighting = Adafruit_MQTT_Subscribe(&mqtt, TOPIC_SUBSCRIBE_BRIGHTNESS);
 
-ConnectivityTask::ConnectivityTask(const uint8_t task_core, const uint32_t stack_depth)
-    : Task("Connectivity", stack_depth, 1, task_core) {
-    transmit_queue_ = xQueueCreate(1, sizeof(Message));
-    assert(transmit_queue_ != NULL);
-}
-
-ConnectivityTask::~ConnectivityTask() {}
-
-void sendMqttKnobStateDiscoveryMsg() {
+void sendMQTTKnobDiscoveryMsg() {
     JsonDocument payload;
     char         buffer[512];
 
     payload["automation_type"] = "trigger";
     payload["type"]            = "action";
     payload["subtype"]         = "knob_input";
-    payload["topic"]           = action_topic;
+    payload["topic"]           = TOPIC_BASE;
     JsonObject device          = payload["device"].to<JsonObject>();
     device["name"]             = "SmartKnob";
     device["model"]            = "Model 1";
     device["sw_version"]       = "0.0.1";
     device["manufacturer"]     = SMARTKNOB_MANUFACTURER;
     JsonArray identifiers      = device["identifiers"].to<JsonArray>();
-    identifiers.add(smartknob_id);
+    identifiers.add(SMARTKNOB_ID);
 
-    // size_t n = serializeJson(payload, buffer);
     serializeJson(payload, buffer);
-
-    discovery_feed.publish(buffer);
+    feed_pub_discovery.publish(buffer);
 }
 
 void ConnectivityTask::receiveFromSubscriptions() {
     Adafruit_MQTT_Subscribe *subscription;
     while ((subscription = mqtt.readSubscription(0))) {
-        if (subscription == &light_feed) {
-            JsonDocument payload;
-            DeserializationError deserialization_error = deserializeJson(payload, (char *)light_feed.lastread);
-            LOG_DEBUG("Received payload: %s", (char *)light_feed.lastread);
-            
+        if (subscription == &feed_sub_lighting) {
+            JsonDocument         payload;
+            DeserializationError deserialization_error = deserializeJson(payload, (char *)feed_sub_lighting.lastread);
+            LOG_DEBUG("Received payload: %s", (char *)feed_sub_lighting.lastread);
+
             if (deserialization_error) {
                 LOG_ERROR("deserializeJson() returned %s", deserialization_error.c_str());
                 return;
             }
 
-            bool state_present = payload["state"].is<std::string>();
+            bool state_present      = payload["state"].is<std::string>();
             bool brightness_present = payload["brightness"].is<uint8_t>();
             if (!state_present) {
                 LOG_ERROR("State key not found in payload");
+                return;
             }
             if (!brightness_present) {
                 LOG_ERROR("Brightness key not found in payload");
+                return;
             }
-
-            bool lights_turned_off = (state_present && payload["state"] == "OFF");
-            if (lights_turned_off) {
-                bool state = false;
-                for (auto listener : state_listeners_) {
-                    xQueueSend(listener, &state, portMAX_DELAY);
-                }
-            } else if (brightness_present) {
-                uint8_t brightness = payload["brightness"]; // TODO: Replace with a command/message struct, like what is implemented for the motor_task
-                for (auto listener : brightness_listeners_) {
-                    xQueueSend(listener, &brightness, portMAX_DELAY);
-                }
-            }
+            
+            BrightnessData brightness_payload = { .brightness = payload["brightness"] };
+            if (payload["state"] == "OFF") { brightness_payload.brightness = 0; }
+            dispatchToListeners(brightness_payload);
         }
     }
 }
@@ -90,7 +67,7 @@ void ConnectivityTask::run() {
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
 
-    mqtt.subscribe(&light_feed); // Subscriptions must be added before connecting to the broker
+    mqtt.subscribe(&feed_sub_lighting); // Subscriptions must be added before connecting to the broker
 
     while (1) {
         // When either WiFi or MQTT are not connected and the queue is full, any task attempting
@@ -98,10 +75,10 @@ void ConnectivityTask::run() {
         // In order to avoid this, we need to clear the queue before attempting to connect to WiFi or MQTT.
         // The last message will be kept in the queue.
         // while (uxQueueMessagesWaiting(transmit_queue_) > 1) {
-        //     Message message;
+        //     MQTTPayload message;
         //     xQueueReceive(transmit_queue_, &message, 0);
         // }
-        
+
         if (!initWiFi()) {
             delay(10);
             continue;
@@ -112,15 +89,38 @@ void ConnectivityTask::run() {
             continue;
         }
 
-        Message message;
-        if (xQueueReceive(transmit_queue_, &message, 0) == pdTRUE) {
-            JsonDocument payload;
+        MQTTPayload mqtt_payload;
+        if (xQueueReceive(transmit_queue_, &mqtt_payload, 0) == pdTRUE) {
+            JsonDocument json_payload;
             char         buffer[256];
-            payload["trigger_name"]  = message.trigger_name;
-            payload["trigger_value"] = message.trigger_value;
-            serializeJson(payload, buffer);
-
-            action_feed.publish(buffer);
+            
+            Adafruit_MQTT_Publish *feed_pub = nullptr;
+            auto visitor = overload {
+                [&](const BrightnessData& p) {
+                    json_payload["brightness"] = p.brightness;
+                    feed_pub = &feed_pub_lighting;
+                },
+                [&](const PlayPauseData& p) {
+                    json_payload["paused"] = p.paused;
+                    feed_pub = &feed_pub_play_pause;
+                },
+                [&](const SkipData& p) {
+                    json_payload["forward"] = p.forward;
+                    feed_pub = &feed_pub_skip;
+                },
+                [&](const VolumeData& p) {
+                    json_payload["volume"] = p.volume;
+                    feed_pub = &feed_pub_volume;
+                },
+            };
+            std::visit(visitor, mqtt_payload);
+            if (feed_pub == nullptr) {
+                LOG_ERROR("No MQTT feed specified for publishing");
+                continue;
+            }
+            
+            serializeJson(json_payload, buffer);
+            feed_pub->publish(buffer);
             LOG_INFO("Published %s to MQTT", buffer);
         }
 
@@ -132,20 +132,24 @@ void ConnectivityTask::run() {
 
 /**
  * @brief Send a message to the MQTT broker.
- * 
+ *
  * This function overwrites the queue with the new message.
- * 
+ *
  * @param message The message to send.
  */
-void ConnectivityTask::sendMqttMessage(Message message) {
-    xQueueOverwrite(transmit_queue_, &message);
+void ConnectivityTask::sendMqttMessage(MQTTPayload message) {
+    if (!mqtt.connected()) {
+        LOG_ERROR("MQTT not connected. Message will not be sent.");
+        return;
+    }
+    xQueueSend(transmit_queue_, &message, portMAX_DELAY);
 }
 
 bool ConnectivityTask::initWiFi() {
     static wl_status_t wifi_previous_status;
     static wl_status_t wifi_status;
     wifi_previous_status = wifi_status;
-    wifi_status = WiFi.status();
+    wifi_status          = WiFi.status();
     if (wifi_status == WL_CONNECTED) {
         if (wifi_previous_status != WL_CONNECTED) {
             LOG_SUCCESS("Connected to the WiFi network. IP address: %s", WiFi.localIP().toString().c_str());
@@ -249,16 +253,46 @@ bool ConnectivityTask::connectToMqttBroker() {
         }
 
         LOG_SUCCESS("MQTT Connected!");
-        sendMqttKnobStateDiscoveryMsg();
+        sendMQTTKnobDiscoveryMsg();
         return true;
     }
 
     return false;
 }
 
-void ConnectivityTask::addBrightnessListener(QueueHandle_t queue) {
-    brightness_listeners_.push_back(queue);
+/**
+ * @brief Register a listener for a specific type of data.
+ * 
+ * @param subscription The type of data to listen for.
+ * @param queue The queue handle to register as a listener.
+ */
+void ConnectivityTask::registerListener(MQTTSubscriptionType subscription, QueueHandle_t queue) {
+    listeners_[subscription].push_back(queue);
 }
-void ConnectivityTask::addStateListener(QueueHandle_t queue) {
-    state_listeners_.push_back(queue);
+
+/**
+ * @brief Dispatch data to all listeners of the specified type.
+ * 
+ * @param data The data to dispatch.
+ */
+void ConnectivityTask::dispatchToListeners(const MQTTPayload& data) {
+    // Match the type of data to the subscription type
+    MQTTSubscriptionType subscription;
+    auto visitor = overload {
+        [&](const BrightnessData&) { subscription = MQTTSubscriptionType::LIGHTING; },
+        [&](const PlayPauseData&) { subscription = MQTTSubscriptionType::PLAY_PAUSE; },
+        [&](const SkipData&) { subscription = MQTTSubscriptionType::SKIP; },
+        [&](auto&) {
+            LOG_ERROR("Unknown data type");
+            return;
+        }
+    };
+    std::visit(visitor, data);
+    
+    auto it = listeners_.find(subscription);
+    if (it != listeners_.end()) {
+        for (auto& queue : it->second) {
+            xQueueSend(queue, &data, portMAX_DELAY);
+        }
+    }
 }

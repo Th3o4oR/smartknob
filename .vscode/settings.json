@@ -3,10 +3,7 @@
     "editor.formatOnType": false,
     "editor.formatOnSave": false,
     "editor.formatOnSaveMode": "file",
-    "files.associations": {
-        "cstddef": "cpp",
-        "limits": "cpp"
-    },
+    "C_Cpp.autoAddFileAssociations": false,
 
     "[cpp][c]": {
         "editor.detectIndentation": false,

@@ -7,7 +7,7 @@
 
 #if PB_PROTO_HEADER_VERSION != 40
 #error Regenerate this file with the current version of nanopb generator.
-#endif
+#endif // PB_PROTO_HEADER_VERSION
 
 /* Struct definitions */
 /* * Lets the host know that a ToSmartknob message was received and should not be retried. */
@@ -210,7 +210,7 @@ typedef struct _PB_PersistentConfiguration {
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif // __cplusplus
 
 /* Initializer values for message structs */
 #define PB_FromSmartKnob_init_default            {0, 0, {PB_Ack_init_default}}
@@ -427,6 +427,6 @@ extern const pb_msgdesc_t PB_StrainCalibration_msg;
 
 #ifdef __cplusplus
 } /* extern "C" */
-#endif
+#endif // __cplusplus
 
-#endif
+#endif // PB_PB_SMARTKNOB_PB_H_INCLUDED

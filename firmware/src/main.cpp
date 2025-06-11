@@ -1,17 +1,36 @@
 #include <Arduino.h>
 
 #include "configuration.h"
-#include "display_task.h"
-#include "interface_task.h"
-#include "motor_task.h"
-#include "connectivity_task.h"
+#include "tasks/display_task.h"
+#include "tasks/interface_task.h"
+#include "tasks/motor_task.h"
+#include "tasks/connectivity_task.h"
 
 Configuration config;
 
-#define DISPLAY_TASK_STACK_DEPTH      8192
+#define DISPLAY_TASK_CORE      0
+#define MOTOR_TASK_CORE        1
+#define CONNECTIVITY_TASK_CORE 0
+#define INTERFACE_TASK_CORE    0
+
+// Note that ESP-IDF specifies the stack size in bytes, not words
+#define DISPLAY_TASK_STACK_DEPTH      5200
 #define MOTOR_TASK_STACK_DEPTH        4500
-#define CONNECTIVITY_TASK_STACK_DEPTH 4096
-#define INTERFACE_TASK_STACK_DEPTH    3600
+#define INTERFACE_TASK_STACK_DEPTH    4800
+#define CONNECTIVITY_TASK_STACK_DEPTH 4500
+
+/*
+    Additional default tasks, from ESP-IDF: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/freertos.html
+    More stack sizes can be found `sdkconfig.h`
+    Note that ESP-IDF specifies the stack size in bytes, not words
+    - Idle task:           1536 bytes (times two, one for each core)
+    - FreeRTOS Timer task: 2048 bytes
+    - Main task:           3584 bytes
+    - IPC task:            1024 bytes (times two, one for each core)
+    - ESP Timer task:      3584 bytes
+
+    Also note that other ESP features, such as WiFi, Bluetooth, etc. may also create tasks with their own stack sizes.
+*/
 
 /*
     Stack high water (2025-03-13):
@@ -21,27 +40,34 @@ Configuration config;
     motor:         448 free -> (4500- 448) = 4052 used
     interface:    1136 free -> (3600-1136) = 2464 used
     connectivity: 1848 free -> (4096-1848) = 2248 used
+
+    Stack high water (2025-05-21):
+    (after running motor calibration, connecting to WiFi and sending MQTT messages)
+    display:       972 free -> (5200- 972) = 4228 used
+    motor:         476 free -> (4500- 476) = 4024 used
+    interface:     588 free -> (4800- 588) = 4212 used
+    connectivity: 1008 free -> (4500-1008) = 3492 used
 */
 
-#if SK_DISPLAY
-static DisplayTask display_task(0, DISPLAY_TASK_STACK_DEPTH);
-static DisplayTask* display_task_p = &display_task;
-#else
-static DisplayTask* display_task_p = nullptr;
-#endif
-static MotorTask motor_task(1, MOTOR_TASK_STACK_DEPTH, config);
-static ConnectivityTask connectivity_task(0, CONNECTIVITY_TASK_STACK_DEPTH);
-
-InterfaceTask interface_task(0, INTERFACE_TASK_STACK_DEPTH, motor_task, display_task_p, connectivity_task);
-
 void setup() {
-    #if SK_DISPLAY
+#if SK_DISPLAY
+    static DisplayTask display_task(DISPLAY_TASK_CORE, DISPLAY_TASK_STACK_DEPTH);
+    static DisplayTask* display_task_p = &display_task;
+#else
+    static DisplayTask* display_task_p = nullptr; // No display task if SK_DISPLAY is not defined
+#endif // SK_DISPLAY
+
+    static MotorTask motor_task(MOTOR_TASK_CORE, MOTOR_TASK_STACK_DEPTH, config);
+    static ConnectivityTask connectivity_task(CONNECTIVITY_TASK_CORE, CONNECTIVITY_TASK_STACK_DEPTH);
+    static InterfaceTask interface_task(INTERFACE_TASK_CORE, INTERFACE_TASK_STACK_DEPTH, motor_task, display_task_p, connectivity_task);
+    
+#if SK_DISPLAY
     display_task.setLogger(&interface_task);
     display_task.begin();
 
     // Connect display to motor_task's knob state feed
-    motor_task.addListener(display_task.getKnobStateQueue());
-    #endif
+    motor_task.registerStateListener(display_task.getKnobStateQueue());
+#endif // SK_DISPLAY
     
     config.setLogger(&interface_task);
     motor_task.setLogger(&interface_task);
@@ -54,35 +80,11 @@ void setup() {
     connectivity_task.begin();
     
     // Free up the main loop task (prevents `loop` from running)
-    vTaskDelete(NULL);
+    vTaskDelete(NULL); // Note: Main task seems to prevent the connectivity task from connecting to WiFi
 }
 
 void loop() {
-    char buf[256];
-    static uint32_t last_stack_debug;
-    if (millis() - last_stack_debug > 1000) {
-        unsigned int main_high_water = uxTaskGetStackHighWaterMark(NULL);
-        unsigned int display_high_water = uxTaskGetStackHighWaterMark(display_task.getHandle());
-        unsigned int motor_high_water = uxTaskGetStackHighWaterMark(motor_task.getHandle());
-        unsigned int interface_high_water = uxTaskGetStackHighWaterMark(interface_task.getHandle());
-        unsigned int connectivity_high_water = uxTaskGetStackHighWaterMark(connectivity_task.getHandle());
-
-        snprintf(buf, sizeof(buf),
-            "Stack high water: main: % 4d"
-            ", display: % 4d"
-            ", motor: % 4d"
-            ", interface: % 4d"
-            ", connectivity: % 4d",
-            main_high_water,
-            display_high_water,
-            motor_high_water,
-            interface_high_water,
-            connectivity_high_water
-        );
-        interface_task.log(buf);
-
-        snprintf(buf, sizeof(buf), "Heap -- free: %d, largest: %d", heap_caps_get_free_size(MALLOC_CAP_8BIT), heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
-        interface_task.log(buf);
-        last_stack_debug = millis();
-    }
+    // This function is intentionally left empty.
+    // The main loop is handled by FreeRTOS tasks.
+    // The main task is deleted in setup().
 }

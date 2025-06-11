@@ -54,4 +54,4 @@ uint8_t setToRegs(const RegMask_t *mask, uint8_t *regData, uint8_t toWrite);
 
 }
 
-#endif
+#endif // TLV493D_REGMASK_H_INCLUDED

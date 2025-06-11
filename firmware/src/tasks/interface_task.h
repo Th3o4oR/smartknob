@@ -12,17 +12,25 @@
 #include "serial/serial_protocol_protobuf.h"
 #include "serial/uart_stream.h"
 #include "task.h"
+#include "event_bus.h"
 
 #include "input_type.h"
 #include "pages/main_menu_page.h"
-#include "pages/more_page.h"
+#include "pages/more_menu_page.h"
 #include "pages/lights_page.h"
 #include "pages/demo_page.h"
 #include "pages/settings_page.h"
+#include "pages/media_control_page.h"
+#include "pages/volume_page.h"
 
 #ifndef SK_FORCE_UART_STREAM
     #define SK_FORCE_UART_STREAM 0
-#endif
+#endif // SK_FORCE_UART_STREAM
+
+struct TaskMonitor {
+    const char* name;
+    TaskHandle_t handle;
+};
 
 class InterfaceTask : public Task<InterfaceTask>, public Logger {
     friend class Task<InterfaceTask>; // Allow base Task to invoke protected run()
@@ -35,7 +43,11 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
 
         void log(const std::string& msg) override;
         void setConfiguration(Configuration* configuration);
+        void changePage(PageID page);
         uint8_t incrementPositionNonce();
+        
+        void monitorStackAndHeapUsage(const TaskMonitor* tasks, size_t count);
+        void logStackAndHeapUsage(const TaskMonitor* tasks, size_t count);
 
     protected:
         void run();
@@ -45,11 +57,10 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
         HWCDC stream_;
     #else
         UartStream stream_;
-    #endif
+    #endif // CONFIG_IDF_TARGET_ESP32S3
         MotorTask& motor_task_;
         DisplayTask* display_task_;
         ConnectivityTask& connectivity_task_;
-        char buf_[128];
 
         SemaphoreHandle_t mutex_;
         SemaphoreHandle_t i2c_mutex_;
@@ -63,7 +74,6 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
 
         SerialProtocol* current_protocol_ = nullptr;
         bool remote_controlled_ = false;
-        int current_config_ = 0;
         uint8_t press_count_ = 1;
 
         uint8_t position_nonce_ = 0; // This will overwrite all position_nonce values defined in the config, but should work fine, since it achieves the same thing
@@ -77,16 +87,11 @@ class InterfaceTask : public Task<InterfaceTask>, public Logger {
         SerialProtocolPlaintext plaintext_protocol_;
         SerialProtocolProtobuf proto_protocol_;
 
-        MainMenuPage main_menu_page_;
-        MorePage more_page_;
-        DemoPage demo_page_;
-        SettingsPage settings_page_;
-        LightsPage lights_page_red_;
-        LightsPage lights_page_yellow_;
-        LightsPage lights_page_green_;
-        LightsPage lights_page_aqua_;
-        LightsPage lights_page_blue_;
-        LightsPage lights_page_purple_;
+        std::map<PageID, std::unique_ptr<Page>> page_map_;
+        Page* current_page_ = nullptr;
+        EventBusCore<PageEvent::Message> page_event_bus_;
+        EventSender<PageEvent::Message> page_event_sender_;
+        EventReceiver<PageEvent::Message> page_event_receiver_;
 
         userInput_t user_input_;
 

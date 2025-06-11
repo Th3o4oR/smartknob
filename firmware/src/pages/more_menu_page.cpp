@@ -1,18 +1,18 @@
-#include "settings_page.h"
+#include "more_menu_page.h"
 
-PB_SmartKnobConfig * SettingsPage::getPageConfig() {
+PB_SmartKnobConfig * MorePage::getPageConfig() {
     return &config_;
 }
 
-void SettingsPage::handleMenuInput(int position) {
-    auto menu_item = static_cast<SettingsMenu>(position); // Convert the position to the corresponding menu item
+void MorePage::handleMenuInput(int position) {
+    auto menu_item = static_cast<MoreMenu>(position); // Convert the position to the corresponding menu item
     switch (menu_item) {
-        case SettingsMenu::BACK: {
+        case MoreMenu::BACK: {
             pageChange(PageID::MAIN_MENU);
             break;
         }
-        case SettingsMenu::CALIBRATE_MOTOR: {
-            motorCalibration();
+        case MoreMenu::DEMO_CONFIGS: {
+            pageChange(PageID::DEMO);
             break;
         }
         default:
@@ -20,7 +20,7 @@ void SettingsPage::handleMenuInput(int position) {
     }
 }
 
-void SettingsPage::handleUserInput(input_t input, int input_data, PB_SmartKnobState state) {    
+void MorePage::handleUserInput(input_t input, int input_data, PB_SmartKnobState state) {    
     switch (input) {
         case INPUT_BACK: {
             pageChange(PageID::MAIN_MENU);

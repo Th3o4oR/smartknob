@@ -2,11 +2,28 @@
 
 #include "page.h"
 #include "views/view.h"
-#include "../motor_task.h"
+#include "views/circle_menu_view.h"
+
+#include "tasks/motor_task.h"
+
+// Needs to match the entries defined below
+enum class MainMenu {
+    SETTINGS,
+    MORE,
+    MEDIA,
+    RED_LIGHTS,
+    YELLOW_LIGHTS,
+    GREEN_LIGHTS,
+    // AQUA_LIGHTS,
+    BLUE_LIGHTS,
+    PURPLE_LIGHTS,
+
+    _MAX
+};
 
 class MainMenuPage : public Page {
     public:
-        MainMenuPage() : Page() {}
+        MainMenuPage(PageContext& context) : Page(context) {}
 
         ~MainMenuPage(){}
 
@@ -18,43 +35,20 @@ class MainMenuPage : public Page {
         void handleMenuInput(int position);  
 
         PB_ViewConfig view_config = {
-            VIEW_CIRCLE_MENU,
+            .view_type = VIEW_CIRCLE_MENU,
             "Main menu",
-            .menu_entries_count = 8,
-            .menu_entries = 
-            {
-                {
-                    "Red",
-                    "\ue0f0"
-                },
-                {
-                    "Yellow",
-                    "\uf02a"
-                },
-                {
-                    "Green",
-                    "\uec12"
-                },
-                {
-                    "Aqua",
-                    "\ue1ff"
-                },
-                {
-                    "Blue",
-                    "\uf137"
-                },
-                {
-                    "Purple",
-                    "\ue425"
-                },
-                {
-                    "Settings",
-                    "\ue8b8"
-                },
-                {
-                    "More",
-                    "\ue5d3"
-                }
+            .menu_entries_count = static_cast<int>(MainMenu::_MAX),
+            .menu_entries = {
+                { "Settings",        ICON_GEAR          },
+                { "More",            ICON_ELLIPSIS      },
+                { "Media",           ICON_PLAY_PAUSE    },
+                // { "Bedroom\nlights", ICON_CEILING_LAMP  },
+                { "Red\nlights",     ICON_CEILING_LAMP  },
+                { "Yellow\nlights",  ICON_CEILING_LAMP  },
+                { "Green\nlights",   ICON_CEILING_LAMP  },
+                // { "Aqua\nlights",    ICON_CEILING_LAMP  },
+                { "Blue\nlights",    ICON_CEILING_LAMP  },
+                { "Purple\nlights",  ICON_CEILING_LAMP  }
             }
         };
 
@@ -62,16 +56,16 @@ class MainMenuPage : public Page {
         {
             .has_view_config = true,
             .view_config = view_config,
-            .initial_position = 0,
+            .initial_position = 3,
             .sub_position_unit = 0,
             .position_nonce = 0,
             .min_position = 0,
-            .max_position = 7,
+            .max_position = static_cast<int>(MainMenu::_MAX) - 1,
             .infinite_scroll = true,
-            .position_width_radians = 45 * PI / 180,
-            .detent_strength_unit = 0.5,
-            .endstop_strength_unit = 1,
-            .snap_point = 0.51,
+            .position_width_radians = 2 * PI / static_cast<int>(MainMenu::_MAX),
+            .detent_strength_unit = CircleMenuView::DETENT_STRENGTH_UNIT,
+            .endstop_strength_unit = CircleMenuView::ENDSTOP_STRENGTH_UNIT,
+            .snap_point = CircleMenuView::SNAP_POINT,
             .detent_positions_count = 0,
             .detent_positions = {},
             .snap_point_bias = 0,
